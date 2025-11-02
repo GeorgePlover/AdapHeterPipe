@@ -97,3 +97,4 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str):
     plt.tight_layout()
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
+    print(f"Gantt chart saved to {filename}")
