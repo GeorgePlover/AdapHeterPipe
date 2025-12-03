@@ -1,0 +1,4 @@
+DEBUG = False
+EPS = 1e-3
+MEM_PROTECT = True
+VISUALIZE = True

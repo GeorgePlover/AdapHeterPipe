@@ -7,7 +7,8 @@ from simulator import Simulator, SimConf, Task
 # 绘制甘特图，横轴为时间，纵轴为worker_id，不同颜色表示不同类型的任务，F用蓝色，B用橙色，W用绿色
 # stage_id 利用颜色的渐变来表示虚拟流水线的深度，即stage_id越大颜色越深
 
-def generate_gantt_chart(tasklist: List['Task'], filename: str):
+def generate_gantt_chart(tasklist: List['Task'], filename: str,
+                         no_W:bool = False):
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
     import matplotlib.colors as mcolors
@@ -88,13 +89,37 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str):
     ax.grid(True, axis='x', alpha=0.3)
     
     # 创建图例
+    ncol = 2
     f_patch = mpatches.Patch(color='blue', label='Forward (F)')
     b_patch = mpatches.Patch(color='orange', label='Backward (B)') 
-    w_patch = mpatches.Patch(color='green', label='Weight Update (W)')
-    ax.legend(handles=[f_patch, b_patch, w_patch], loc='upper center', ncol=3, bbox_to_anchor=(0.5, -0.15))
+    handles = [f_patch, b_patch]
+    if no_W is False:
+        w_patch = mpatches.Patch(color='green', label='Weight Update (W)')
+        ncol=3
+        handles.append(w_patch)
+    
+    ax.legend(handles=handles, loc='upper center', ncol=ncol, bbox_to_anchor=(0.5, -0.15))
     
     # 调整布局并保存
     plt.tight_layout()
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Gantt chart saved to {filename}")
+    
+
+# 绘制实验结果柱状图
+def generate_result_bar_chart(result_dict: Dict[str, float], filename: str):
+    import matplotlib.pyplot as plt
+    
+    methods = list(result_dict.keys())
+    throuputs = [result_dict[m] for m in methods]
+    
+    plt.bar(methods, throuputs)
+    plt.xlabel('Method')
+    plt.ylabel('Throughput (samples/s)')
+    plt.title('Throughput Comparison')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Result bar chart saved to {filename}")

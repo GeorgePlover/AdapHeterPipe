@@ -1,6 +1,11 @@
 from simulator import Simulator, SimConf, Task
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from my_profile import Model, Worker, get_model, get_device
+from SA import SimulatedAnnealer
+from my_common import DEBUG, VISUALIZE
+import time
+import random
+import json
 
 class Strategy:
     def __init__(self, name: str):
@@ -30,6 +35,34 @@ class EvenLayerStrategy(Strategy):
             })
             applied_layers += end_layer - start_layer
         return stages
+
+class EvenLayerStrategyInterleaved(EvenLayerStrategy):
+    def __init__(self):
+        super().__init__()
+        self.name = "EvenLayerStrategyInterleaved"
+    
+    def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
+        stages = super().construct_stages(model, workers)
+        interleaved_stages1 = []
+        interleaved_stages2 = []
+        for stage in stages:
+            layer_num = stage["layer_num"]
+            mid = layer_num // 2
+            interleaved_stages1.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": mid
+            })
+            interleaved_stages2.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": layer_num - mid
+            })
+        interleaved_stages = interleaved_stages1 + interleaved_stages2
+        layer_sum = 0
+        for stage_id in range(len(interleaved_stages)):
+            stage = interleaved_stages[stage_id]
+            layer_sum += stage["layer_num"]
+            stage["layer_range"] = (layer_sum - stage["layer_num"], layer_sum)
+        return interleaved_stages
 
 class EvenVshapeStrategy(Strategy):
     def __init__(self):
@@ -91,6 +124,34 @@ class DivByFlopsStrategy(Strategy):
             })
             applied_layers += layer_num
         return stages
+    
+class DivByFlopsStrategyInterleaved(DivByFlopsStrategy):
+    def __init__(self):
+        super().__init__()
+        self.name = "DivByFlopsStrategyInterleaved"
+    
+    def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
+        stages = super().construct_stages(model, workers)
+        interleaved_stages1 = []
+        interleaved_stages2 = []
+        for stage in stages:
+            layer_num = stage["layer_num"]
+            mid = layer_num // 2
+            interleaved_stages1.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": mid
+            })
+            interleaved_stages2.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": layer_num - mid
+            })
+        interleaved_stages = interleaved_stages1 + interleaved_stages2
+        layer_sum = 0
+        for stage_id in range(len(interleaved_stages)):
+            stage = interleaved_stages[stage_id]
+            layer_sum += stage["layer_num"]
+            stage["layer_range"] = (layer_sum - stage["layer_num"], layer_sum)
+        return interleaved_stages
     
 class DivByFlopsVshapeStrategy(Strategy):
     def __init__(self):
@@ -154,6 +215,34 @@ class DivByMemoryStrategy(Strategy):
             })
             applied_layers += layer_num
         return stages
+    
+class DivByMemoryStrategyInterleaved(DivByMemoryStrategy):
+    def __init__(self):
+        super().__init__()
+        self.name = "DivByMemoryStrategyInterleaved"
+        
+    def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
+        stages = super().construct_stages(model, workers)
+        interleaved_stages1 = []
+        interleaved_stages2 = []
+        for stage in stages:
+            layer_num = stage["layer_num"]
+            mid = layer_num // 2
+            interleaved_stages1.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": mid
+            })
+            interleaved_stages2.append({
+                "worker_id": stage["worker_id"],
+                "layer_num": layer_num - mid
+            })
+        interleaved_stages = interleaved_stages1 + interleaved_stages2
+        layer_sum = 0
+        for stage_id in range(len(interleaved_stages)):
+            stage = interleaved_stages[stage_id]
+            layer_sum += stage["layer_num"]
+            stage["layer_range"] = (layer_sum - stage["layer_num"], layer_sum)
+        return interleaved_stages
 
 class DivByMemoryVshapeStrategy(Strategy):
     def __init__(self):
@@ -200,20 +289,94 @@ class HandCraftedStrategy(Strategy):
     def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
         stages = [
             {"worker_id":0, "layer_range": (0, 2), "layer_num":2},
-            {"worker_id":1, "layer_range": (2, 4), "layer_num":2},
+            {"worker_id":0, "layer_range": (2, 4), "layer_num":2},
             {"worker_id":1, "layer_range": (4, 6), "layer_num":2},
-            {"worker_id":0, "layer_range": (6, 8), "layer_num":2},
+            {"worker_id":1, "layer_range": (6, 8), "layer_num":2},
             {"worker_id":2, "layer_range": (8, 12), "layer_num":4},
-            {"worker_id":3, "layer_range": (12, 16), "layer_num":4},
+            {"worker_id":2, "layer_range": (12, 16), "layer_num":4},
             {"worker_id":3, "layer_range": (16, 20), "layer_num":4},
-            {"worker_id":2, "layer_range": (20, 24), "layer_num":4},
+            {"worker_id":3, "layer_range": (20, 24), "layer_num":4},
         ]
         return stages
+
+class SAState:
+    def __init__(self, list_of_layers_workerid: List[Tuple[int, int]]):
+        self.state = list_of_layers_workerid
+        
+    def from_stages(self, stages: List[Dict]):
+        self.state = [(stage["layer_range"][1] - stage["layer_range"][0], stage["worker_id"]) for stage in stages]
+        
+    def swap(self, i: int, j: int):
+        self.state[i], self.state[j] = self.state[j], self.state[i]
+        return True
+        
+    def swap_a_layer(self, i: int, j: int):
+        if self.state[i][0] == 1:
+            return False
+        self.state[i] = (self.state[i][0] - 1, self.state[i][1])
+        self.state[j] = (self.state[j][0] + 1, self.state[j][1])
+        return True
+    
+    def to_stages(self) -> List[Dict]:
+        stages = []
+        worker_id = 0
+        layer_start = 0
+        for layer_num, worker_id in self.state:
+            stages.append({
+                "worker_id": worker_id,
+                "layer_range": (layer_start, layer_start + layer_num),
+                "layer_num": layer_num
+            })
+            layer_start += layer_num
+        return stages
+    
+    def to_json(self):
+        return self.state
+class SAOptimizer(SimulatedAnnealer):
+    def __init__(self, model_name:str, workers_device_names: List[str],
+                 x0: SAState, T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42):
+        super().__init__(x0, T0, Tmin, max_iter, alpha, max_stay, seed)
+        self.model_name = model_name
+        self.workers_device_names = workers_device_names
+        self.model = get_model(model_name)
+        self.worker_cnt = len(workers_device_names)
+        self.workers = []
+        for i in range(self.worker_cnt):
+            device = get_device(workers_device_names[i])
+            self.workers.append(Worker(device=device, model=self.model))
+        
+    
+    def energy(self, state: SAState) -> float:
+        stages = state.to_stages()
+        config = SimConf(
+            stage_cnt=len(stages),
+            microbatch_cnt=self.model.batch_size // self.model.microbatch_size,
+            workers=self.workers,
+            stages=stages
+        )
+        simulator = Simulator(config)
+        simulator.run()
+        return simulator.pipe_e2e_time()
+    
+    def neighbor(self, state: SAState):
+        new_state = SAState(state.state.copy())
+        i,j = 1,1
+        while i==j:
+            i, j = random.sample(range(len(new_state.state)), 2)
+            
+        if random.random() < 0.5:
+            new_state.swap(i, j)
+        else:
+            new_state.swap_a_layer(i, j)
+            
+        return new_state
     
 def test_strategy(model_name:str, 
                   workers_device_names: List[str], 
-                  strategy: Strategy,
-                  test_name: str):
+                  strategy: Strategy = None,
+                  test_name: str = "test",
+                  stages = None, 
+                  pipe_schedule_type: str = "adaptive"):
     model = get_model(model_name)
     worker_cnt = len(workers_device_names)
     workers = []
@@ -222,60 +385,227 @@ def test_strategy(model_name:str,
         device = get_device(workers_device_names[i])
         workers.append(Worker(device=device, model=model))
     
-    stages = strategy.construct_stages(model, workers)
+    if strategy is not None: 
+        stages = strategy.construct_stages(model, workers)
+        
+    assert stages is not None, "No strategy is provided and no stages are provided"
+    
+    if pipe_schedule_type in ["1F1B","Interleaved_1F1B"]:
+        no_w = True
+    else:
+        no_w = False
     
     config = SimConf(
         stage_cnt=len(stages),
         microbatch_cnt=model.batch_size // model.microbatch_size,
         workers=workers,
-        stages=stages
+        stages=stages,
+        NO_W=no_w
     )
     
     simulator = Simulator(config)
-    simulator.run()
-    for worker_sim in simulator.worker_sims:
-        print("========================================")
-        print(f"Worker ID: {worker_sim.worker_id}")
-        print(f"Worker Device: {worker_sim.worker.device.name} Load Layers: {worker_sim.layer_num}")
-        print(f"Worker Memory Limit: {worker_sim.worker.memory_limit()/(2**30):.2f} GB")
-        print(f"Static Memory: {worker_sim.static_mem/(2**30):.2f} GB")
-        print(f"Active Memory Peak Usage: {worker_sim.peak_mem_usage/(2**30):.2f} GB")
-        print(f"Worker Memory Peak Rate: {worker_sim.worker_peak_mem_rate():.4f}, Bubble Rate: {worker_sim.worker_bubble_rate():.4f}")
+    if pipe_schedule_type == "1F1B":
+        simulator.use_1f1b_schedule()
+    elif pipe_schedule_type == "Interleaved_1F1B":
+        simulator.use_interleaved_1f1b_schedule(interleaved_degree=2)
+    elif pipe_schedule_type == "ZB":
+        simulator.use_zb_schedule()
     
-    from visual import generate_gantt_chart
-    generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png")
-    print("\n\n")
+    simulator.run()
+    if DEBUG:
+        for worker_sim in simulator.worker_sims:
+            print("========================================")
+            print(f"Worker ID: {worker_sim.worker_id}")
+            print(f"Worker Device: {worker_sim.worker.device.name} Load Layers: {worker_sim.layer_num}")
+            print(f"Worker Memory Limit: {worker_sim.worker.memory_limit()/(2**30):.2f} GB")
+            print(f"Static Memory: {worker_sim.static_mem/(2**30):.2f} GB")
+            print(f"Active Memory Peak Usage: {worker_sim.peak_mem_usage/(2**30):.2f} GB")
+            print(f"Worker Memory Peak Rate: {worker_sim.worker_peak_mem_rate():.4f}, Bubble Rate: {worker_sim.worker_bubble_rate():.4f}")
+        print(f"E2E time: {simulator.pipe_e2e_time()} sec\n\n")    
+        
+    
+    if VISUALIZE:
+        from visual import generate_gantt_chart
+        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png")
+
+    return simulator.pipe_e2e_time()
+        
+def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "SA_test", T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42):
+    model = get_model(model_name)
+    worker_cnt = len(workers_device_names)
+    workers = []
+    for i in range(worker_cnt):
+        device = get_device(workers_device_names[i])
+        workers.append(Worker(device=device, model=model))
+    
+    init_state = SAState([(0,0)])
+    init_state.from_stages(DivByFlopsVshapeStrategy().construct_stages(model, workers)) 
+    optimizer = SAOptimizer(model_name, workers_device_names, init_state, T0, Tmin, max_iter, alpha, max_stay, seed)
+    res = optimizer.run()
+    print(res["best_state"],res["best_energy"])
+    json.dump(res, open(f"{test_name}_SA_result.json", "w"))
+    
+    if VISUALIZE:
+        test_strategy(model_name, workers_device_names, stages=SAState(res["best_state"]).to_stages(), test_name=test_name)
+    return res["best_energy"]
+    
+
+def test_normal_1f1b():
+    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=DivByFlopsStrategy(),
+        test_name="1F1B_test_1.3B",
+        pipe_schedule_type="1F1B"
+    )
+
+def test_normal_interleaved_1f1b():
+    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=EvenLayerStrategyInterleaved(),
+        test_name="Interleaved_1F1B_test_1.3B",
+        pipe_schedule_type="Interleaved_1F1B"
+    )
+    
+def test_normal_zb():
+    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=EvenLayerStrategy(),
+        test_name="ZB_test_1.3B",
+        pipe_schedule_type="ZB"
+    )
+    
+def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
+    methods = [
+        {
+            "name": "1F1B(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(Even)",
+            "strategy": EvenLayerStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "ZB(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB-Vshape(Even)",
+            "strategy": EvenVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "ZB-Vshape(DivByFlops)",
+            "strategy": DivByFlopsVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "ZB-Vshape(DivByMemory)",
+            "strategy": DivByMemoryVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "SA",
+            "strategy": None,
+            "pipe_schedule_type": "adaptive"
+        }
+    ]
+    res = []
+    for method in methods:
+        if method["name"] == "SA":
+            e2e_time = test_SA(
+                model_name=model_name,
+                workers_device_names=device_name_list,
+                test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}"
+            )
+            res.append({
+                "name": method["name"],
+                "e2e_time": e2e_time
+            })
+        else:
+            try:
+                e2e_time = test_strategy(
+                    model_name=model_name,
+                    workers_device_names=device_name_list,
+                    strategy=method["strategy"],
+                    test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}",
+                    pipe_schedule_type=method["pipe_schedule_type"]
+                )
+                print(f"Method: {method['name']}, E2E Time: {e2e_time} sec")
+                res.append({
+                    "name": method["name"],
+                    "e2e_time": e2e_time
+                })
+            except Exception as e:
+                print(f"Method: {method['name']} failed with error: {e}")
+                res.append({
+                    "name": method["name"],
+                    "e2e_time": None,
+                    "error": str(e)
+                })
+    
+    json.dump(res, open(f"{folder_name}/result_{model_name.replace('.','_')}.json", "w"))
+    
+    if VISUALIZE:
+        to_throughput = lambda e2e_time: (get_model(model_name).batch_size / e2e_time) if e2e_time is not None else 0.0
+        result_dict = {r["name"]: to_throughput(r["e2e_time"]) for r in res}
+        from visual import generate_result_bar_chart
+        generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.png")
+
+def create_folder(folder_name: str):
+    import os
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
 
 if __name__ == "__main__":
     # 
-    test_strategy(
-        model_name="gpt3-1.3b",
-        workers_device_names=["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"],
-        strategy=DivByFlopsVshapeStrategy(),
-        test_name="Div_By_Flops_Vshape_Strategy_test_1.3B"
-    )
-    test_strategy(
-        model_name="gpt3-1.3b",
-        workers_device_names=["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"],
-        strategy=DivByFlopsStrategy(),
-        test_name="Div_By_Flops_Strategy_test_1.3B"
-    )
-    test_strategy(
-        model_name="gpt3-1.3b",
-        workers_device_names=["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"],
-        strategy=DivByMemoryStrategy(),
-        test_name="Div_By_Memory_Strategy_test_1.3B"
-    )
-    test_strategy(
-        model_name="gpt3-1.3b",
-        workers_device_names=["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"],
-        strategy=DivByMemoryVshapeStrategy(),
-        test_name="Div_By_Memory_Vshape_Strategy_test_1.3B"
-    )
-    test_strategy(
-        model_name="gpt3-1.3b",
-        workers_device_names=["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"],
-        strategy=HandCraftedStrategy(),
-        test_name="Hand_Crafted_Strategy_test_1.3B"
-    )
+    device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
+    model_name = "gpt3_1.3b"
+    # device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    # model_name = "gpt3_6.7b"
+    create_folder("vh45_results")
+    run_exp(device_name_list, model_name, folder_name="vh45_results")
+    
+    
     

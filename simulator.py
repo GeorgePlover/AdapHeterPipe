@@ -1,10 +1,7 @@
 from typing import Any, List, Tuple, Dict
 from my_profile import Worker, get_model, get_device
-
+from my_common import DEBUG, MEM_PROTECT
 # 根据指定逻辑模拟流水线的结果
-
-EPS = 1e-3
-MEM_PROTECT = True
 
 class SimConf:
     def __init__(self,
@@ -12,11 +9,15 @@ class SimConf:
                  microbatch_cnt: int,
                  workers: List[Worker],
                  stages: List[Dict], # {"worker_id":int, "layer_range": Tuple[int, int], "layer_num":int}
+                 OMMIT_OOM: bool = False,
+                 NO_W: bool = False,
                  ):
         self.stage_cnt = stage_cnt
         self.microbatch_cnt = microbatch_cnt
         self.workers = workers
         self.stages = stages
+        self.OMMIT_OOM = OMMIT_OOM
+        self.NO_W = NO_W
         
         self.worker_cnt = len(workers)
         pass
@@ -36,7 +37,13 @@ class Task:
         
         self.worker_id = simconf.stages[stage_id]["worker_id"]
         self.layer_num = simconf.stages[stage_id]["layer_num"]
+        
         self.duration = simconf.workers[self.worker_id].time_per_layer(task_type) * self.layer_num
+        # 处理 WB 合并的情况
+        if simconf.NO_W and task_type == "B":
+            self.duration += simconf.workers[self.worker_id].time_per_layer("W") * self.layer_num
+        
+        
         self.memory_overhead = simconf.workers[self.worker_id].active_mem_per_layer(task_type) * self.layer_num  # 该任务占用的显存大小
         self.available_time = 0.0  # 该任务可开始的时间点
         self.start_time = None
@@ -84,8 +91,8 @@ class WorkerSim:
         first_available_W_task = None
         bubble_tasks = []
         for task in self.task_lists:
-            if (task.memory_overhead > self.available_mem or 
-                (MEM_PROTECT and task.remain_mem > self.available_mem)):
+            if ( (self.simconf.OMMIT_OOM is False) and (task.memory_overhead > self.available_mem or 
+                (MEM_PROTECT and task.remain_mem > self.available_mem)) ):
                 continue
             if task.available_time <= self.available_time:
                 if task.task_type in ["F", "B"]:
@@ -151,8 +158,10 @@ class WorkerSim:
 class Simulator:
     def __init__(self, config: SimConf):
         self.config = config
+        self.STABLE_SCHEDULE = config.OMMIT_OOM  # 是否使用稳定调度策略
+        self.NO_W = config.NO_W  # 是否使用W任务
         self.tasks_array = self._task_matrix(config) # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
-        self.worker_sims = self._worker_sims(config)
+        self.worker_sims = self._worker_sims(config)    
     
     def _task_matrix(self, config: SimConf) -> List[List[Dict[str, Task]]]:
         '''
@@ -175,7 +184,7 @@ class Simulator:
             mb_tasks = []
             for stage_id in range(config.stage_cnt):
                 type2task = {}
-                for task_type in ["F", "B", "W"]:
+                for task_type in (["F", "B", "W"] if self.NO_W is False else ["F", "B"]):
                     
                     remain_mem = 0.0
                     if task_type == "F":
@@ -218,6 +227,133 @@ class Simulator:
                 mb_tasks.append(type2task)
             task_matrix.append(mb_tasks)
         return task_matrix
+    
+    def apply_a_succ_has_b(self, a:Task, b:Task):
+        a.succ_task.append(b)
+        b.prev_task.append(a)
+    
+    def apply_chain_tasks(self, tasks: List[Task]):
+        for i in range(len(tasks)-1):
+            self.apply_a_succ_has_b(tasks[i], tasks[i+1])
+    
+    def use_1f1b_schedule(self):
+        '''
+            使用1F1B调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.NO_W is True, "NO_W should be True"
+        assert self.config.stage_cnt == self.config.worker_cnt, "stage_cnt should be equal to worker_cnt"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        mb_cnt = config.microbatch_cnt
+        
+        for stage_id in range(stage_cnt):
+            warmup = min(stage_cnt - stage_id - 1, mb_cnt - 1)
+            task_ordered = []
+            for mb_id in range(warmup): # Warmup
+                task_ordered.append(matrix[mb_id][stage_id]["F"])
+            for mb_id in range(warmup, mb_cnt): # 1F1B
+                task_ordered.append(matrix[mb_id][stage_id]["F"])
+                task_ordered.append(matrix[mb_id - warmup][stage_id]["B"])
+            for mb_id in range(mb_cnt - warmup, mb_cnt): # Cooldown
+                task_ordered.append(matrix[mb_id][stage_id]["B"])
+            self.apply_chain_tasks(task_ordered)
+                
+    def use_interleaved_1f1b_schedule(self, interleaved_degree: int):
+        '''
+            使用交错1F1B调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.NO_W is True, "NO_W should be True"
+        assert self.config.worker_cnt * interleaved_degree == self.config.stage_cnt, "stage_cnt should be equal to worker_cnt * vp"
+        assert self.config.microbatch_cnt % self.config.worker_cnt == 0, "microbatch_cnt should be divisible by worker_cnt"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        worker_cnt = config.worker_cnt
+        mb_cnt = config.microbatch_cnt
+        vp_cnt = interleaved_degree
+        
+        for worker_id in range(worker_cnt):
+            Flist = []
+            Blist = []
+            for chunk_id in range(mb_cnt // worker_cnt):
+                for stage_id in range(worker_id, stage_cnt, worker_cnt):
+                    for mb_id in range(chunk_id * worker_cnt, (chunk_id + 1) * worker_cnt):
+                        Flist.append(matrix[mb_id][stage_id]["F"])
+                for stage_id in range(worker_id+worker_cnt*(vp_cnt-1), -1, -worker_cnt):
+                    for mb_id in range(chunk_id * worker_cnt, (chunk_id + 1) * worker_cnt):
+                        Blist.append(matrix[mb_id][stage_id]["B"])
+                        
+            warmup = min((vp_cnt - 1) * worker_cnt + 2 * (worker_cnt - worker_id - 1), mb_cnt * vp_cnt - 1)
+            task_ordered = []
+            
+            for f_id in range(warmup): # Warmup
+                task_ordered.append(Flist[f_id])
+            for f_id in range(warmup, len(Flist)): # Interleaved 1F1B
+                task_ordered.append(Flist[f_id])
+                task_ordered.append(Blist[f_id - warmup])
+            for b_id in range(len(Blist) - warmup, len(Blist)): # Cooldown
+                task_ordered.append(Blist[b_id])
+            self.apply_chain_tasks(task_ordered)
+            
+    def use_zb_schedule(self):
+        '''
+            使用ZB调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.NO_W is False, "NO_W should be False"
+        assert self.config.stage_cnt == self.config.worker_cnt, "stage_cnt should be equal to worker_cnt"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        mb_cnt = config.microbatch_cnt
+        
+        for stage_id in range(stage_cnt):
+            warmup_f = min((stage_cnt - stage_id - 1) * 2, mb_cnt - 1)
+            warmup_b = min(stage_id * 2, mb_cnt - 1)
+            f_id, b_id, w_id = 0, 0, 0
+            task_ordered = []
+            
+            while f_id < mb_cnt or b_id < mb_cnt or w_id < mb_cnt:
+                if f_id < mb_cnt:
+                    task_ordered.append(matrix[f_id][stage_id]["F"])
+                    f_id += 1
+                if b_id < mb_cnt and f_id > warmup_f:
+                    task_ordered.append(matrix[b_id][stage_id]["B"])
+                    b_id += 1
+                if w_id < mb_cnt and b_id > warmup_b:
+                    task_ordered.append(matrix[w_id][stage_id]["W"])
+                    w_id += 1
+            
+            self.apply_chain_tasks(task_ordered)
+            
+    def use_zv_vshape_schedule(self):
+        '''
+            使用ZB-Vshape调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.NO_W is False, "NO_W should be False"
+        assert self.config.stage_cnt == self.config.worker_cnt * 2, "stage_cnt should be equal to worker_cnt * 2"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        worker_cnt = config.worker_cnt
+        mb_cnt = config.microbatch_cnt
+
     
     def _worker_sims(self, config: SimConf) -> List[WorkerSim]:
         '''
@@ -278,20 +414,25 @@ class Simulator:
             if not executed:
                 retry += 1
                 if retry > self.config.worker_cnt:    
-                    assert False, "Too many retry. There might be a deadlock."
+                    raise Exception("Too many retry. There might be a deadlock. OOM.")
+                    # assert False, "Too many retry. There might be a deadlock."
             
             next_worker_sims = self.choose_next_workers()
             iteration += 1
             if sum(len(ws.task_lists) for ws in self.worker_sims) == 0:
                 break  # 所有任务执行完毕
-            
-        print(f"Simulation finished in {iteration} iterations.")
-        print("Worker bubble rates:", self.workers_bubble_rate())
-        print("Worker peak memory usages:", self.worker_peak_mem_rate())
+        if DEBUG:
+            print(f"Simulation finished in {iteration} iterations.")
+            print("Worker bubble rates:", self.workers_bubble_rate())
+            print("Worker peak memory usages:", self.worker_peak_mem_rate())
             
     def pipe_res(self):
         # 返回由task_matrix拍扁的task列表
         return [task for mb_tasks in self.tasks_array for stage_tasks in mb_tasks for task in stage_tasks.values()]
+    
+    def pipe_e2e_time(self) -> float:
+        # 返回流水线的端到端时间
+        return max(worker_sim.time_last_task for worker_sim in self.worker_sims)
     
 def test_simulator_zb():
     from visual import generate_gantt_chart
