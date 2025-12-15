@@ -334,13 +334,14 @@ class SAState:
         return self.state
 class SAOptimizer(SimulatedAnnealer):
     def __init__(self, model_name:str, workers_device_names: List[str],
-                 x0: SAState, T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42):
+                 x0: SAState, T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42, swap_color_rate = 0.5):
         super().__init__(x0, T0, Tmin, max_iter, alpha, max_stay, seed)
         self.model_name = model_name
         self.workers_device_names = workers_device_names
         self.model = get_model(model_name)
         self.worker_cnt = len(workers_device_names)
         self.workers = []
+        self.swap_color_rate = swap_color_rate
         for i in range(self.worker_cnt):
             device = get_device(workers_device_names[i])
             self.workers.append(Worker(device=device, model=self.model))
@@ -355,7 +356,15 @@ class SAOptimizer(SimulatedAnnealer):
             stages=stages
         )
         simulator = Simulator(config)
-        simulator.run()
+        try:
+            simulator.run()
+        except Exception as e:
+            # 获取OOM情况错误字符串
+            if "OOM" in str(e):
+                iteration = str(e).split()[1]
+                return float(1e9 - int(iteration))
+            return float("inf")
+        
         return simulator.pipe_e2e_time()
     
     def neighbor(self, state: SAState):
@@ -364,7 +373,7 @@ class SAOptimizer(SimulatedAnnealer):
         while i==j:
             i, j = random.sample(range(len(new_state.state)), 2)
             
-        if random.random() < 0.5:
+        if random.random() < self.swap_color_rate:
             new_state.swap(i, j)
         else:
             new_state.swap_a_layer(i, j)
@@ -410,6 +419,8 @@ def test_strategy(model_name:str,
         simulator.use_interleaved_1f1b_schedule(interleaved_degree=2)
     elif pipe_schedule_type == "ZB":
         simulator.use_zb_schedule()
+    elif pipe_schedule_type == "ZB_V":
+        simulator.use_zv_vshape_schedule()
     
     simulator.run()
     if DEBUG:
@@ -430,7 +441,7 @@ def test_strategy(model_name:str,
 
     return simulator.pipe_e2e_time()
         
-def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "SA_test", T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42):
+def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "SA_test", pipeline_type: str = "adaptive", T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42, swap_color_rate = 0.5):
     model = get_model(model_name)
     worker_cnt = len(workers_device_names)
     workers = []
@@ -439,8 +450,11 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
         workers.append(Worker(device=device, model=model))
     
     init_state = SAState([(0,0)])
-    init_state.from_stages(DivByFlopsVshapeStrategy().construct_stages(model, workers)) 
-    optimizer = SAOptimizer(model_name, workers_device_names, init_state, T0, Tmin, max_iter, alpha, max_stay, seed)
+    init_state.from_stages(EvenVshapeStrategy().construct_stages(model, workers)) 
+    swap_color_rate = 0.5
+    if pipeline_type != "adaptive":
+        swap_color_rate = 0.0
+    optimizer = SAOptimizer(model_name, workers_device_names, init_state, T0, Tmin, max_iter, alpha, max_stay, seed, swap_color_rate)
     res = optimizer.run()
     print(res["best_state"],res["best_energy"])
     json.dump(res, open(f"{test_name}_SA_result.json", "w"))
@@ -482,73 +496,103 @@ def test_normal_zb():
         test_name="ZB_test_1.3B",
         pipe_schedule_type="ZB"
     )
+def test_normal_zb_vshape():
+    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=EvenVshapeStrategy(),
+        test_name="ZB_Vshape_test_1.3B",
+        pipe_schedule_type="ZB_V"
+    )
     
 def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
     methods = [
+        # {
+        #     "name": "1F1B(Even)",
+        #     "strategy": EvenLayerStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "1F1B(DivByFlops)",
+        #     "strategy": DivByFlopsStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "1F1B(DivByMemory)",
+        #     "strategy": DivByMemoryStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(Even)",
+        #     "strategy": EvenLayerStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(DivByFlops)",
+        #     "strategy": DivByFlopsStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(DivByMemory)",
+        #     "strategy": DivByMemoryStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "ZB(Even)",
+        #     "strategy": EvenLayerStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB(DivByFlops)",
+        #     "strategy": DivByFlopsStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB(DivByMemory)",
+        #     "strategy": DivByMemoryStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB-Vshape(Even)",
+        #     "strategy": EvenVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
+        # {
+        #     "name": "ZB-Vshape(DivByFlops)",
+        #     "strategy": DivByFlopsVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
+        # {
+        #     "name": "ZB-Vshape(DivByMemory)",
+        #     "strategy": DivByMemoryVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
+        # {
+        #     "name": "ZB-V-adaptive(Even)",
+        #     "strategy": EvenVshapeStrategy(),
+        #     "pipe_schedule_type": "adaptive"
+        # },
+        # {
+        #     "name": "ZB-V-adaptive(DivByFlops)",
+        #     "strategy": DivByFlopsVshapeStrategy(),
+        #     "pipe_schedule_type": "adaptive"
+        # },
+        # {
+        #     "name": "ZB-V-adaptive(DivByMemory)",
+        #     "strategy": DivByMemoryVshapeStrategy(),
+        #     "pipe_schedule_type": "adaptive"
+        # },
+        # {
+        #     "name": "SA",
+        #     "strategy": None,
+        #     "pipe_schedule_type": "adaptive"
+        # },
         {
-            "name": "1F1B(Even)",
-            "strategy": EvenLayerStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "1F1B(DivByFlops)",
-            "strategy": DivByFlopsStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "1F1B(DivByMemory)",
-            "strategy": DivByMemoryStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(Even)",
-            "strategy": EvenLayerStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(DivByFlops)",
-            "strategy": DivByFlopsStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(DivByMemory)",
-            "strategy": DivByMemoryStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "ZB(Even)",
-            "strategy": EvenLayerStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB(DivByFlops)",
-            "strategy": DivByFlopsStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB(DivByMemory)",
-            "strategy": DivByMemoryStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB-Vshape(Even)",
-            "strategy": EvenVshapeStrategy(),
-            "pipe_schedule_type": "adaptive"
-        },
-        {
-            "name": "ZB-Vshape(DivByFlops)",
-            "strategy": DivByFlopsVshapeStrategy(),
-            "pipe_schedule_type": "adaptive"
-        },
-        {
-            "name": "ZB-Vshape(DivByMemory)",
-            "strategy": DivByMemoryVshapeStrategy(),
-            "pipe_schedule_type": "adaptive"
-        },
-        {
-            "name": "SA",
+            "name": "SA-wo-adaptive",
             "strategy": None,
-            "pipe_schedule_type": "adaptive"
+            "pipe_schedule_type": "ZB_V"
         }
     ]
     res = []
@@ -558,6 +602,17 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
                 model_name=model_name,
                 workers_device_names=device_name_list,
                 test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}"
+            )
+            res.append({
+                "name": method["name"],
+                "e2e_time": e2e_time
+            })
+        elif method["name"] == "SA-wo-adaptive":
+            e2e_time = test_SA(
+                model_name=model_name,
+                workers_device_names=device_name_list,
+                test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}",
+                pipeline_type = "ZB_V"
             )
             res.append({
                 "name": method["name"],
@@ -588,10 +643,13 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
     json.dump(res, open(f"{folder_name}/result_{model_name.replace('.','_')}.json", "w"))
     
     if VISUALIZE:
-        to_throughput = lambda e2e_time: (get_model(model_name).batch_size / e2e_time) if e2e_time is not None else 0.0
+        model = get_model(model_name)
+        to_throughput = lambda e2e_time: (model.batch_size * model.sequence_length / e2e_time * 1) if e2e_time is not None else 0.0
         result_dict = {r["name"]: to_throughput(r["e2e_time"]) for r in res}
         from visual import generate_result_bar_chart
         generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.png")
+        for item in result_dict:
+            print(f"Method: {item}, Throughput: {(result_dict[item]/1000):.2f} K tokens/sec")
 
 def create_folder(folder_name: str):
     import os
@@ -599,13 +657,56 @@ def create_folder(folder_name: str):
         os.makedirs(folder_name)
 
 if __name__ == "__main__":
-    # 
-    device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
-    model_name = "gpt3_1.3b"
-    # device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+    
+    # test_normal_zb_vshape()
+    
+    device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
+    model_name = "gpt3_13b"
+    create_folder("hhvv_tp2_13B_results")
+    run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
+    
+    # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
+    # model_name = "gpt3_1.3b"
+    # create_folder("hhvv_tp2_1_3B_results")
+    # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_1_3B_results")
+    
+    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
+    # model_name = "gpt3_760m"
+    # create_folder("hh55_760m_results")
+    # run_exp(device_name_list, model_name, folder_name="hh55_760m_results")
+    
+    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
     # model_name = "gpt3_6.7b"
-    create_folder("vh45_results")
-    run_exp(device_name_list, model_name, folder_name="vh45_results")
+    # create_folder("hh55_6_7b_results")
+    # run_exp(device_name_list, model_name, folder_name="hh55_6_7b_results")
+    
+    
+    
+    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
+    # model_name = "gpt3_1.3b"
+    # create_folder("hh55_results")
+    # run_exp(device_name_list, model_name, folder_name="hh55_results")
+    
+    # device_name_list = ["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"]
+    # model_name = "gpt3_1.3b"
+    # create_folder("vv44_results")
+    # run_exp(device_name_list, model_name, folder_name="vv44_results")
+    
+    # device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
+    # model_name = "gpt3_760m"
+    # create_folder("vh45_760m_results")
+    # run_exp(device_name_list, model_name, folder_name="vh45_760m_results")
+    
+    # device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
+    # model_name = "gpt3_1.3b"
+    # create_folder("vh45_results")
+    # run_exp(device_name_list, model_name, folder_name="vh45_results")
+    
+    # OOM test
+    # device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
+    # model_name = "gpt3_6.7b"
+    # create_folder("vh45_oom_results")
+    # run_exp(device_name_list, model_name, folder_name="vh45_oom_results")
     
     
     

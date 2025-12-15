@@ -353,7 +353,71 @@ class Simulator:
         stage_cnt = config.stage_cnt
         worker_cnt = config.worker_cnt
         mb_cnt = config.microbatch_cnt
-
+        
+        for worker_id in range(worker_cnt):
+            warmup_front_half = worker_cnt - worker_id - 1
+            warmup_front_back_inter = worker_id + 1
+            
+            f_0 = [matrix[batch_id][worker_id]["F"] for batch_id in range(mb_cnt)]
+            f_1 = [matrix[batch_id][stage_cnt-1-worker_id]["F"] for batch_id in range(mb_cnt)]
+            b_0 = [matrix[batch_id][worker_id]["B"] for batch_id in range(mb_cnt)]
+            b_1 = [matrix[batch_id][stage_cnt-1-worker_id]["B"] for batch_id in range(mb_cnt)]
+            w_0 = [matrix[batch_id][worker_id]["W"] for batch_id in range(mb_cnt)]
+            w_1 = [matrix[batch_id][stage_cnt-1-worker_id]["W"] for batch_id in range(mb_cnt)]
+            
+            task_ordered = []
+            for _ in range(warmup_front_half):
+                for rep in range(2):
+                    if len(f_0) > 0:
+                        task_ordered.append(f_0.pop(0))
+            for _ in range(warmup_front_back_inter):
+                if len(f_0) > 0:
+                    task_ordered.append(f_0.pop(0))
+                if len(f_1) > 0:
+                    task_ordered.append(f_1.pop(0))
+            for _ in range(warmup_front_half):
+                if len(b_1) > 0:
+                    task_ordered.append(b_1.pop(0))
+                if len(w_1) > 0:
+                    task_ordered.append(w_1.pop(0))
+                if len(f_1) > 0:
+                    task_ordered.append(f_1.pop(0))
+            while max(len(f_0), len(f_1)) > 0:
+                if len(b_1) > 0:
+                    task_ordered.append(b_1.pop(0))
+                if len(b_0) > 0:
+                    task_ordered.append(b_0.pop(0))
+                if len(w_1) > 0:
+                    task_ordered.append(w_1.pop(0))
+                if len(w_0) > 0:
+                    task_ordered.append(w_0.pop(0))
+                if len(f_0) > 0:
+                    task_ordered.append(f_0.pop(0))
+                if len(f_1) > 0:
+                    task_ordered.append(f_1.pop(0))
+            for _ in range(warmup_front_back_inter):
+                if len(b_1) > 0:
+                    task_ordered.append(b_1.pop(0))
+                if len(b_0) > 0:
+                    task_ordered.append(b_0.pop(0))
+            while max(len(b_0), len(w_0), len(w_1)) > 0:
+                if len(w_1) > 0:
+                    task_ordered.append(w_1.pop(0))
+                elif len(w_0) > 0:
+                    task_ordered.append(w_0.pop(0))
+                if len(b_1) > 0:
+                    task_ordered.append(b_1.pop(0))
+                elif len(b_0) > 0:
+                    task_ordered.append(b_0.pop(0))
+                if len(w_0) > 0:
+                    task_ordered.append(w_0.pop(0))
+                if len(b_0) > 0:
+                    task_ordered.append(b_0.pop(0))
+                
+                
+            
+            self.apply_chain_tasks(task_ordered)
+    
     
     def _worker_sims(self, config: SimConf) -> List[WorkerSim]:
         '''
@@ -414,7 +478,7 @@ class Simulator:
             if not executed:
                 retry += 1
                 if retry > self.config.worker_cnt:    
-                    raise Exception("Too many retry. There might be a deadlock. OOM.")
+                    raise Exception(f"iteration: {iteration} - OOM.")
                     # assert False, "Too many retry. There might be a deadlock."
             
             next_worker_sims = self.choose_next_workers()

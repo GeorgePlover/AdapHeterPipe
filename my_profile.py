@@ -237,6 +237,13 @@ def get_device(device_name: str) -> Device:
             tflops=125,  # FP16 TFLOPS
             memory_GB=32.0
         )
+    elif device_name == "V100-32GB-TP2":
+        return Device(
+            name="V100",
+            tflops=125,  # FP16 TFLOPS
+            memory_GB=32.0,
+            tp=2
+        )
     elif device_name == "V100-16GB":
         return Device(
             name="V100",
@@ -266,6 +273,13 @@ def get_device(device_name: str) -> Device:
             name="H20",
             tflops=148,  # FP16 TFLOPS
             memory_GB=96.0
+        )
+    elif device_name == "H20-96GB-TP2":
+        return Device(
+            name="H20",
+            tflops=148,  # FP16 TFLOPS
+            memory_GB=96.0,
+            tp=2
         )
     else:
         raise ValueError(f"Unknown device name: {device_name}")
