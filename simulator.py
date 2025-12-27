@@ -236,6 +236,30 @@ class Simulator:
         for i in range(len(tasks)-1):
             self.apply_a_succ_has_b(tasks[i], tasks[i+1])
     
+    def use_gpipe_schedule(self):
+        '''
+            使用GPipe调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.NO_W is True, "NO_W should be True"
+        assert self.config.stage_cnt == self.config.worker_cnt, "stage_cnt should be equal to worker_cnt"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        mb_cnt = config.microbatch_cnt
+        
+        for stage_id in range(stage_cnt):
+            
+            task_ordered = []
+            for mb_id in range(mb_cnt): # Warmup
+                task_ordered.append(matrix[mb_id][stage_id]["F"])
+            for mb_id in range(mb_cnt): # Cooldown
+                task_ordered.append(matrix[mb_id][stage_id]["B"])
+            self.apply_chain_tasks(task_ordered)
+    
     def use_1f1b_schedule(self):
         '''
             使用1F1B调度策略

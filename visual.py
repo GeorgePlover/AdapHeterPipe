@@ -8,18 +8,19 @@ from simulator import Simulator, SimConf, Task
 # stage_id 利用颜色的渐变来表示虚拟流水线的深度，即stage_id越大颜色越深
 
 def generate_gantt_chart(tasklist: List['Task'], filename: str,
-                         no_W:bool = False):
+                         no_W:bool = False, pipeline_schedule_type: str = "1F1B"):
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
     import matplotlib.colors as mcolors
 
+    stage_cnt = max(task.stage_id for task in tasklist) + 1 if tasklist else 1
     fig, ax = plt.subplots(figsize=(12, 4))
 
     # 基础颜色映射
     base_color_map = {
-        "F": "blue",
-        "B": "orange", 
-        "W": "green"
+        "F": "#BFBFBF",#"#AAAAAA",
+        "B": "#3F3F3F",#"#555555", 
+        "W": "#3F3F3F"#"#555555"
     }
     
     # 找出最大的stage_id用于颜色渐变
@@ -41,9 +42,25 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
         duration = task.end_time - task.start_time
         if duration <= 0:
             continue
-            
+        
+        color_intensity = 1.0
+        font_color = 'black'
+        hatch = ''
         # 根据stage_id计算颜色深浅 (0到1之间的值)
-        color_intensity = 1- task.stage_id / max_stage if max_stage > 0 else 0.5
+        if pipeline_schedule_type == "1F1B":
+            color_intensity = 1.0
+        elif pipeline_schedule_type == "Gpipe":
+            color_intensity = 1.0
+        elif pipeline_schedule_type in ["Interleaved_1F1B", "ZB_V"]:
+            if task.stage_id >= stage_cnt//2:
+                font_color = 'white'
+            else:
+                color_intensity = 1.0
+        else:
+            color_intensity = 1.0
+        
+        if task.task_type == "W":
+            hatch = 'xx'
         
         # 获取对应类型的颜色
         task_color = color_maps[task.task_type](color_intensity)
@@ -53,10 +70,11 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
             y=task.worker_id,
             width=duration,
             left=task.start_time,
-            height=0.4,
+            height=1.0,
             color=task_color,
             edgecolor='black',
-            linewidth=0.5,
+            linewidth=1.5,
+            hatch=hatch,
             alpha=0.8
         )
         
@@ -68,41 +86,74 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
                 task.microbatch_id.__str__(),
                 ha='center',
                 va='center',
-                fontsize=8,
-                color='white' if color_intensity > 0.6 else 'black'
+                fontsize=14,
+                weight='bold',
+                color=font_color
             )
     
-    # 设置图表属性
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Worker ID')
-    ax.set_title('Gantt Chart of Tasks')
+    # 设置图表属性，x轴文字靠右，不要居中
+    ax.set_xlabel('Time', fontdict = {'size': 18, 'weight': 'bold'}, ha='right', x=0.95)
+    # ax.set_ylabel('GPU-ID', fontdict = {'size': 18, 'weight': 'bold'}, ha="right", y=0.9)
+
     
-    # 设置y轴为整数
+    # ax.set_title('Gantt Chart of Tasks')
+    
+    # 设置y轴为GPU-整数
     if tasklist:
         worker_ids = sorted(set(task.worker_id for task in tasklist),reverse=True)
-        ax.set_yticks(worker_ids)
+        worker_ids = [f"GPU-{wid}" for wid in worker_ids]
+        # ax.set_yticks(worker_ids)
+        ax.set_yticks(range(len(worker_ids)), labels=reversed(worker_ids))
         
     # y坐标轴翻转
     ax.invert_yaxis()
     
+    # y轴坐标字体大小
+    ax.tick_params(axis='y', labelsize=18)
+    ax.set_yticklabels(
+        ax.get_yticklabels(),
+        fontsize=18,
+        weight='bold'
+    )
     # 添加网格
-    ax.grid(True, axis='x', alpha=0.3)
+    # ax.grid(True, axis='x', alpha=0.3)
+    
+    # 移除图表上左右边框
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    
+    # 下边框加粗，显示箭头
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['bottom'].set_capstyle('projecting')
+    
+    # 移除tick标记
+    ax.tick_params(axis='both', which='both', length=0)
+    
+    # 移除x轴刻度数字
+    
+    ax.set_xticklabels([])
+    
     
     # 创建图例
     ncol = 2
-    f_patch = mpatches.Patch(color='blue', label='Forward (F)')
-    b_patch = mpatches.Patch(color='orange', label='Backward (B)') 
+    f_patch = mpatches.Patch(facecolor=base_color_map["F"], label='Forward Pass', edgecolor='black')
+    b_patch = mpatches.Patch(facecolor=base_color_map["B"], label='Backward Pass', edgecolor='black') 
     handles = [f_patch, b_patch]
     if no_W is False:
-        w_patch = mpatches.Patch(color='green', label='Weight Update (W)')
+        w_patch = mpatches.Patch(facecolor=base_color_map["W"], label='Weight Pass', edgecolor='black', hatch='xx')
         ncol=3
         handles.append(w_patch)
     
-    ax.legend(handles=handles, loc='upper center', ncol=ncol, bbox_to_anchor=(0.5, -0.15))
+    ax.legend(handles=handles, loc='upper center', ncol=ncol, bbox_to_anchor=(0.5, -0.05)
+              , fontsize=18, frameon=False)
+    # 加粗图例字体
+    for text in ax.get_legend().get_texts():
+        text.set_weight('bold')
     
     # 调整布局并保存
     plt.tight_layout()
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.savefig(filename, dpi=600, bbox_inches='tight')
     plt.close()
     print(f"Gantt chart saved to {filename}")
     

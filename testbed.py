@@ -399,7 +399,7 @@ def test_strategy(model_name:str,
         
     assert stages is not None, "No strategy is provided and no stages are provided"
     
-    if pipe_schedule_type in ["1F1B","Interleaved_1F1B"]:
+    if pipe_schedule_type in ["1F1B","Interleaved_1F1B","Gpipe"]:
         no_w = True
     else:
         no_w = False
@@ -421,6 +421,8 @@ def test_strategy(model_name:str,
         simulator.use_zb_schedule()
     elif pipe_schedule_type == "ZB_V":
         simulator.use_zv_vshape_schedule()
+    elif pipe_schedule_type == "Gpipe":
+        simulator.use_gpipe_schedule()
     
     simulator.run()
     if DEBUG:
@@ -437,7 +439,7 @@ def test_strategy(model_name:str,
     
     if VISUALIZE:
         from visual import generate_gantt_chart
-        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png")
+        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
 
     return simulator.pipe_e2e_time()
         
@@ -464,46 +466,57 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
     return res["best_energy"]
     
 
-def test_normal_1f1b():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_gpipe(test_name = "GPipe_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=DivByFlopsStrategy(),
-        test_name="1F1B_test_1.3B",
+        test_name=test_name,
+        pipe_schedule_type="Gpipe"
+    )
+
+def test_normal_1f1b(test_name = "1F1B_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=DivByFlopsStrategy(),
+        test_name=test_name,
         pipe_schedule_type="1F1B"
     )
 
-def test_normal_interleaved_1f1b():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_interleaved_1f1b(test_name = "Interleaved_1F1B_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenLayerStrategyInterleaved(),
-        test_name="Interleaved_1F1B_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="Interleaved_1F1B"
     )
     
-def test_normal_zb():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_zb(test_name = "ZB_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenLayerStrategy(),
-        test_name="ZB_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="ZB"
     )
-def test_normal_zb_vshape():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_zb_vshape(test_name = "ZB_Vshape_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenVshapeStrategy(),
-        test_name="ZB_Vshape_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="ZB_V"
     )
     
@@ -657,13 +670,18 @@ def create_folder(folder_name: str):
         os.makedirs(folder_name)
 
 if __name__ == "__main__":
+    test_gpipe("draw/GPipe_draw")
+    test_normal_1f1b("draw/1F1B_draw")
+    test_normal_interleaved_1f1b("draw/Interleaved_1F1B_draw")
+    test_normal_zb("draw/ZB_draw")
+    test_normal_zb_vshape("draw/ZB_Vshape_draw")
     
     # test_normal_zb_vshape()
     
-    device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
-    model_name = "gpt3_13b"
-    create_folder("hhvv_tp2_13B_results")
-    run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
+    # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
+    # model_name = "gpt3_13b"
+    # create_folder("hhvv_tp2_13B_results")
+    # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
     
     # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
     # model_name = "gpt3_1.3b"
