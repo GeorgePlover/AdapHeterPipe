@@ -439,7 +439,7 @@ def test_strategy(model_name:str,
     
     if VISUALIZE:
         from visual import generate_gantt_chart
-        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
+        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.pdf", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
 
     return simulator.pipe_e2e_time()
         
@@ -660,7 +660,7 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         to_throughput = lambda e2e_time: (model.batch_size * model.sequence_length / e2e_time * 1) if e2e_time is not None else 0.0
         result_dict = {r["name"]: to_throughput(r["e2e_time"]) for r in res}
         from visual import generate_result_bar_chart
-        generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.png")
+        generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.pdf")
         for item in result_dict:
             print(f"Method: {item}, Throughput: {(result_dict[item]/1000):.2f} K tokens/sec")
 

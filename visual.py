@@ -18,8 +18,8 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
 
     # 基础颜色映射
     base_color_map = {
-        "F": "#BFBFBF",#"#AAAAAA",
-        "B": "#3F3F3F",#"#555555", 
+        "F": "#5CA9C8",#"#AAAAAA",
+        "B": "#5DB558",#"#555555", 
         "W": "#3F3F3F"#"#555555"
     }
     
@@ -101,7 +101,7 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
     # 设置y轴为GPU-整数
     if tasklist:
         worker_ids = sorted(set(task.worker_id for task in tasklist),reverse=True)
-        worker_ids = [f"GPU-{wid}" for wid in worker_ids]
+        worker_ids = [f"Node-{wid}" for wid in worker_ids]
         # ax.set_yticks(worker_ids)
         ax.set_yticks(range(len(worker_ids)), labels=reversed(worker_ids))
         
