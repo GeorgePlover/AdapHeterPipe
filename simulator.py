@@ -36,6 +36,7 @@ class Task:
         self.remain_mem = remain_mem  # 该任务执行前需要保留的显存大小
         
         self.worker_id = simconf.stages[stage_id]["worker_id"]
+        self.worker = simconf.workers[self.worker_id]
         self.layer_num = simconf.stages[stage_id]["layer_num"]
         
         self.duration = simconf.workers[self.worker_id].time_per_layer(task_type) * self.layer_num
@@ -54,10 +55,31 @@ class Task:
     def remove_prev_task(self, task: 'Task'):
         return self.prev_task.remove(task)
     
-    def release_succ_tasks(self)-> List['Task']: # topological sort
+    def task_transfer_time(self, next_task: 'Task')-> float:
+        need_pp_transfer = False
+        if (self.task_type == "F" and next_task.task_type == "F" and self.stage_id + 1 == next_task.stage_id
+            and self.worker_id != next_task.worker_id):
+            need_pp_transfer = True
+        if (self.task_type == "B" and next_task.task_type == "B" and self.stage_id == next_task.stage_id+1
+            and self.worker_id != next_task.worker_id):
+            need_pp_transfer = True
+        if need_pp_transfer:
+            res = self.worker.pp_activation_transfer_time(
+                aim_worker = next_task.worker
+            )
+            # if self.stage_id != next_task.stage_id:
+            #     print(self.worker.device.node_id, next_task.worker.device.node_id)
+            # print(res,"sec")
+            return res
+        return 0.0
+    
+    def release_succ_tasks(self, send_time: List)-> List['Task']: # topological sort
         res = []
         for succ in self.succ_task:
-            succ.available_time = max(succ.available_time, self.end_time)
+            trans_time = self.task_transfer_time(succ)
+            if trans_time > 0.0:
+                send_time.append( (self.end_time, self.end_time+trans_time) )
+            succ.available_time = max(succ.available_time, self.end_time+trans_time)
             succ.remove_prev_task(self)
             if len(succ.prev_task) == 0:
                 res.append(succ)
@@ -81,6 +103,12 @@ class WorkerSim:
         self.time_last_task = 0.0   # 该worker最后一个任务的结束时间
         self.time_total_busy = 0.0  # 该worker总的忙碌时间
         self.peak_mem_usage = 0.0  # 该worker的峰值内存使用量
+        
+        self.record = {
+            "compute_intervals" : [],
+            "send_intervals" : []
+        }
+        
         
     def execute_next_task(self, another_available_time: float, worker_sims: List['WorkerSim'])-> bool:
         # 对列表里的任务按照microbatch_id排序，找出可执行的任务
@@ -129,20 +157,28 @@ class WorkerSim:
         self.task_lists.remove(task)
         
         # 释放后继任务
-        released_tasks = task.release_succ_tasks()
+        send_time_interval = [] # 记录发送激活值给后继任务的时间区间
+        released_tasks = task.release_succ_tasks(send_time = send_time_interval)
         for released_task in released_tasks:
             worker_id = released_task.worker_id
             worker_sim = worker_sims[worker_id]
             worker_sim.task_lists.append(released_task)
             
         # 更新worker的统计信息
+        if len(send_time_interval) > 0:
+            self.record_interval("send_intervals", send_time_interval[0])
+        
         if self.time_first_task is None:
             self.time_first_task = task.start_time
         self.time_last_task = task.end_time
         self.time_total_busy += task.duration
         self.peak_mem_usage = max(self.peak_mem_usage, self.worker.memory_limit() - self.available_mem - self.static_mem)
+        self.record_interval("compute_intervals", (task.start_time, task.end_time))
         
         return True # 成功执行了任务
+    
+    def record_interval(self, type:str, interval: Tuple[float, float]):
+        self.record[type].append(interval)
     
     def worker_bubble_rate(self) -> float:
         if self.time_first_task is None:
@@ -154,6 +190,49 @@ class WorkerSim:
     
     def worker_peak_mem_rate(self) -> float:
         return (self.peak_mem_usage + self.static_mem) / self.worker.memory_limit()
+    
+    def worker_time_analysis(self, E2E_time: float)-> Dict[str, float]:
+        event_list = []
+        for interval in self.record["compute_intervals"]:
+            event_list.append((interval[0], "start", "compute"))
+            event_list.append((interval[1], "end", "compute"))
+        
+        for interval in self.record["send_intervals"]:
+            event_list.append((interval[0], "start", "send"))
+            event_list.append((interval[1], "end", "send"))
+        
+        event_list.sort(key=lambda event: event[0])
+        
+        state = {
+            "compute": int(0),
+            "send": int(0),
+        }
+        
+        res = {
+            "front_waiting_time": event_list[0][0],
+            "back_waiting_time": E2E_time - event_list[-1][0],
+            "computing_time": 0.0,
+            "sending_time": 0.0,
+            "overlapping_time": 0.0,
+        }
+        last_happen = 0.0
+        for event in event_list:
+            if state["compute"] > 0:
+                res["computing_time"] += event[0] - last_happen
+            if state["send"] > 0:
+                res["sending_time"] += event[0] - last_happen
+            if state["compute"] > 0 and state["send"] > 0:
+                res["overlapping_time"] += event[0] - last_happen
+            if event[1] == "start":
+                state[event[2]] += 1
+            if event[1] == "end":
+                state[event[2]] -= 1    
+            last_happen = event[0]
+        
+        for key in list(res.keys()):
+            res[key+"_ratio"] = res[key] / E2E_time * 100.0
+    
+        return res
     
 class Simulator:
     def __init__(self, config: SimConf):
@@ -497,6 +576,15 @@ class Simulator:
     def pipe_e2e_time(self) -> float:
         # 返回流水线的端到端时间
         return max(worker_sim.time_last_task for worker_sim in self.worker_sims)
+    
+    def workers_record_res(self) -> List[Dict]:
+        res = []
+        E2E_time = self.pipe_e2e_time()
+        for worker_sim in self.worker_sims:
+            res.append(worker_sim.worker_time_analysis(E2E_time=E2E_time))
+            res[-1]["bubble_rate"] = worker_sim.worker_bubble_rate()
+            res[-1]["peak_mem_rate"] = worker_sim.worker_peak_mem_rate()
+        return res
     
 def test_simulator_zb():
     from visual import generate_gantt_chart

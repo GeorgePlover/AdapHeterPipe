@@ -385,7 +385,7 @@ def test_strategy(model_name:str,
                   strategy: Strategy = None,
                   test_name: str = "test",
                   stages = None, 
-                  pipe_schedule_type: str = "adaptive"):
+                  pipe_schedule_type: str = "adaptive") -> Tuple[float, Dict]:
     model = get_model(model_name)
     worker_cnt = len(workers_device_names)
     workers = []
@@ -399,7 +399,7 @@ def test_strategy(model_name:str,
         
     assert stages is not None, "No strategy is provided and no stages are provided"
     
-    if pipe_schedule_type in ["1F1B","Interleaved_1F1B"]:
+    if pipe_schedule_type in ["1F1B","Interleaved_1F1B","Gpipe"]:
         no_w = True
     else:
         no_w = False
@@ -421,8 +421,12 @@ def test_strategy(model_name:str,
         simulator.use_zb_schedule()
     elif pipe_schedule_type == "ZB_V":
         simulator.use_zv_vshape_schedule()
+    elif pipe_schedule_type == "Gpipe":
+        simulator.use_gpipe_schedule()
     
     simulator.run()
+    workersim_record = simulator.workers_record_res()
+    
     if DEBUG:
         for worker_sim in simulator.worker_sims:
             print("========================================")
@@ -437,9 +441,9 @@ def test_strategy(model_name:str,
     
     if VISUALIZE:
         from visual import generate_gantt_chart
-        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png")
+        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.pdf", no_W=no_w)
 
-    return simulator.pipe_e2e_time()
+    return simulator.pipe_e2e_time(), workersim_record
         
 def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "SA_test", pipeline_type: str = "adaptive", T0 = 100, Tmin = 0.001, max_iter = 10000, alpha = 0.95, max_stay = 500, seed = 42, swap_color_rate = 0.5):
     model = get_model(model_name)
@@ -450,7 +454,7 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
         workers.append(Worker(device=device, model=model))
     
     init_state = SAState([(0,0)])
-    init_state.from_stages(EvenVshapeStrategy().construct_stages(model, workers)) 
+    init_state.from_stages(DivByMemoryVshapeStrategy().construct_stages(model, workers))   # FIXME: 这里的策略起点需要根据实际情况进行调整
     swap_color_rate = 0.5
     if pipeline_type != "adaptive":
         swap_color_rate = 0.0
@@ -459,51 +463,64 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
     print(res["best_state"],res["best_energy"])
     json.dump(res, open(f"{test_name}_SA_result.json", "w"))
     
+    record = None
+    
     if VISUALIZE:
-        test_strategy(model_name, workers_device_names, stages=SAState(res["best_state"]).to_stages(), test_name=test_name)
-    return res["best_energy"]
+        e2e_time, record = test_strategy(model_name, workers_device_names, stages=SAState(res["best_state"]).to_stages(), test_name=test_name)
+    return res["best_energy"], record
     
 
-def test_normal_1f1b():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_gpipe(test_name = "GPipe_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=DivByFlopsStrategy(),
-        test_name="1F1B_test_1.3B",
+        test_name=test_name,
+        pipe_schedule_type="Gpipe"
+    )
+
+def test_normal_1f1b(test_name = "1F1B_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
+    model_name = "gpt3_1.3b"
+    test_strategy(
+        model_name=model_name,
+        workers_device_names=device_name_list,
+        strategy=DivByFlopsStrategy(),
+        test_name=test_name,
         pipe_schedule_type="1F1B"
     )
 
-def test_normal_interleaved_1f1b():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_interleaved_1f1b(test_name = "Interleaved_1F1B_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenLayerStrategyInterleaved(),
-        test_name="Interleaved_1F1B_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="Interleaved_1F1B"
     )
     
-def test_normal_zb():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_zb(test_name = "ZB_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenLayerStrategy(),
-        test_name="ZB_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="ZB"
     )
-def test_normal_zb_vshape():
-    device_name_list = ["H20-96GB", "H20-96GB", "H20-96GB", "H20-96GB"]
+def test_normal_zb_vshape(test_name = "ZB_Vshape_test_1.3B"):
+    device_name_list = ["A100-80GB", "A100-80GB", "A100-80GB", "A100-80GB"]
     model_name = "gpt3_1.3b"
     test_strategy(
         model_name=model_name,
         workers_device_names=device_name_list,
         strategy=EvenVshapeStrategy(),
-        test_name="ZB_Vshape_test_1.3B",
+        test_name=test_name,
         pipe_schedule_type="ZB_V"
     )
     
@@ -554,21 +571,21 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryStrategy(),
         #     "pipe_schedule_type": "ZB"
         # },
-        # {
-        #     "name": "ZB-Vshape(Even)",
-        #     "strategy": EvenVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-Vshape(DivByFlops)",
-        #     "strategy": DivByFlopsVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-Vshape(DivByMemory)",
-        #     "strategy": DivByMemoryVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
+        {
+            "name": "ZB-Vshape(Even)",
+            "strategy": EvenVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-Vshape(DivByFlops)",
+            "strategy": DivByFlopsVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-Vshape(DivByMemory)",
+            "strategy": DivByMemoryVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
         # {
         #     "name": "ZB-V-adaptive(Even)",
         #     "strategy": EvenVshapeStrategy(),
@@ -584,31 +601,32 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryVshapeStrategy(),
         #     "pipe_schedule_type": "adaptive"
         # },
-        # {
-        #     "name": "SA",
-        #     "strategy": None,
-        #     "pipe_schedule_type": "adaptive"
-        # },
         {
-            "name": "SA-wo-adaptive",
+            "name": "SA",
             "strategy": None,
-            "pipe_schedule_type": "ZB_V"
-        }
+            "pipe_schedule_type": "adaptive"
+        },
+        # {
+        #     "name": "SA-wo-adaptive",
+        #     "strategy": None,
+        #     "pipe_schedule_type": "ZB_V"
+        # }
     ]
     res = []
     for method in methods:
         if method["name"] == "SA":
-            e2e_time = test_SA(
+            e2e_time, record = test_SA(
                 model_name=model_name,
                 workers_device_names=device_name_list,
                 test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}"
             )
             res.append({
                 "name": method["name"],
-                "e2e_time": e2e_time
+                "e2e_time": e2e_time,
+                "record": record
             })
         elif method["name"] == "SA-wo-adaptive":
-            e2e_time = test_SA(
+            e2e_time, record = test_SA(
                 model_name=model_name,
                 workers_device_names=device_name_list,
                 test_name=f"{folder_name}/{method['name']}_test_{model_name.replace('.','_')}",
@@ -616,11 +634,12 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
             )
             res.append({
                 "name": method["name"],
-                "e2e_time": e2e_time
+                "e2e_time": e2e_time,
+                "record": record
             })
         else:
             try:
-                e2e_time = test_strategy(
+                e2e_time, record = test_strategy(
                     model_name=model_name,
                     workers_device_names=device_name_list,
                     strategy=method["strategy"],
@@ -630,7 +649,8 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
                 print(f"Method: {method['name']}, E2E Time: {e2e_time} sec")
                 res.append({
                     "name": method["name"],
-                    "e2e_time": e2e_time
+                    "e2e_time": e2e_time,
+                    "record": record
                 })
             except Exception as e:
                 print(f"Method: {method['name']} failed with error: {e}")
@@ -647,9 +667,12 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         to_throughput = lambda e2e_time: (model.batch_size * model.sequence_length / e2e_time * 1) if e2e_time is not None else 0.0
         result_dict = {r["name"]: to_throughput(r["e2e_time"]) for r in res}
         from visual import generate_result_bar_chart
-        generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.png")
+        generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.pdf")
         for item in result_dict:
             print(f"Method: {item}, Throughput: {(result_dict[item]/1000):.2f} K tokens/sec")
+            
+        from visual import plot_pipeline_metrics
+        plot_pipeline_metrics(res, f"{folder_name}/pipeline_metrics_{model_name.replace('.','_')}.pdf")
 
 def create_folder(folder_name: str):
     import os
@@ -657,35 +680,47 @@ def create_folder(folder_name: str):
         os.makedirs(folder_name)
 
 if __name__ == "__main__":
+    # test_gpipe("draw/GPipe_draw")
+    # test_normal_1f1b("draw/1F1B_draw")
+    # test_normal_interleaved_1f1b("draw/Interleaved_1F1B_draw")
+    # test_normal_zb("draw/ZB_draw")
+    # test_normal_zb_vshape("draw/ZB_Vshape_draw")
     
     # test_normal_zb_vshape()
     
-    device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
-    model_name = "gpt3_13b"
-    create_folder("hhvv_tp2_13B_results")
-    run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
+    # device_name_list = [{"device_name":"H20-96GB-TP2", "node_id":0},
+    #                     {"device_name":"H20-96GB-TP2", "node_id":0},
+    #                     {"device_name":"V100-32GB-TP2", "node_id":1},
+    #                     {"device_name":"V100-32GB-TP2", "node_id":1}]
+    # model_name = "gpt3_13b"
+    # create_folder("hhvv_tp2_13B_results")
+    # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
     
     # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
     # model_name = "gpt3_1.3b"
     # create_folder("hhvv_tp2_1_3B_results")
     # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_1_3B_results")
     
-    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
+    # -----   H20 * 2 + 5090 * 2
+    
+    device_name_list = [{"device_name":"H20-96GB", "node_id":0},
+                        {"device_name":"H20-96GB", "node_id":0},
+                        {"device_name":"RTX5090-32GB", "node_id":1},
+                        {"device_name":"RTX5090-32GB", "node_id":1}]
+    
     # model_name = "gpt3_760m"
-    # create_folder("hh55_760m_results")
-    # run_exp(device_name_list, model_name, folder_name="hh55_760m_results")
+    # create_folder("bw_hh55_760m_results")
+    # run_exp(device_name_list, model_name, folder_name="bw_hh55_760m_results")
     
-    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
     # model_name = "gpt3_6.7b"
-    # create_folder("hh55_6_7b_results")
-    # run_exp(device_name_list, model_name, folder_name="hh55_6_7b_results")
+    # create_folder("bw_hh55_6_7b_results")
+    # run_exp(device_name_list, model_name, folder_name="bw_hh55_6_7b_results")
     
+    model_name = "gpt3_1.3b"
+    create_folder("bw_hh55_1_3b_results")
+    run_exp(device_name_list, model_name, folder_name="bw_hh55_1_3b_results")
     
-    
-    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
-    # model_name = "gpt3_1.3b"
-    # create_folder("hh55_results")
-    # run_exp(device_name_list, model_name, folder_name="hh55_results")
+    # -----
     
     # device_name_list = ["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"]
     # model_name = "gpt3_1.3b"
@@ -708,5 +743,18 @@ if __name__ == "__main__":
     # create_folder("vh45_oom_results")
     # run_exp(device_name_list, model_name, folder_name="vh45_oom_results")
     
+    # ----- large scale
     
     
+    # device_name_list = [{"device_name":"H20-96GB-TP8", "node_id":0},
+    #                     {"device_name":"H20-96GB-TP8", "node_id":1},
+    #                     {"device_name":"H20-96GB-TP8", "node_id":2},
+    #                     {"device_name":"H20-96GB-TP8", "node_id":3},
+    #                     {"device_name":"RTX5090-32GB-TP8", "node_id":4},
+    #                     {"device_name":"RTX5090-32GB-TP8", "node_id":5},
+    #                     {"device_name":"RTX5090-32GB-TP8", "node_id":6},
+    #                     {"device_name":"RTX5090-32GB-TP8", "node_id":7}]
+    
+    # model_name = "gpt3_175b-tune"
+    # create_folder("bw_hhhh5555_88b_results")
+    # run_exp(device_name_list, model_name, folder_name="bw_hhhh5555_88b_results")

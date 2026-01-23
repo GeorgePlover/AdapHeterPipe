@@ -3,6 +3,76 @@
 from typing import List, Dict
 from simulator import Simulator, SimConf, Task
 
+
+def plot_pipeline_metrics(data, output_dir='./plots'):
+    """简化的流水线指标可视化"""
+
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+    # 加载数据
+
+    # 创建输出目录
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    # 设置图形
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    
+    for method in list(data):
+        if "record" not in method:
+            data.remove(method)
+    
+    for idx, method in enumerate(data):
+        method_name = method['name']
+        records = method['record']
+        
+        stages = range(len(records))
+        overlap = [r['overlapping_time_ratio'] for r in records]
+        bubble = [100.0 + r['overlapping_time_ratio'] - r['sending_time_ratio'] - r['computing_time_ratio'] for r in records]
+        memory = [r['peak_mem_rate'] * 100 for r in records]
+        
+        # 通信掩盖率
+        axes[0].plot(stages, overlap, 'o-', label=method_name, 
+                    color=colors[idx % len(colors)], linewidth=2, markersize=8)
+        
+        # 气泡率
+        axes[1].bar([s + idx*0.15 for s in stages], bubble, width=0.15,
+                   label=method_name, color=colors[idx % len(colors)])
+        
+        # 峰值内存率
+        axes[2].plot(stages, memory, 's--', label=method_name,
+                    color=colors[idx % len(colors)], linewidth=2, markersize=8)
+    
+    # 设置图表属性
+    titles = ['Communication Overlap Ratio', 'Bubble Rate', 'Peak Memory Ratio']
+    ylabels = ['Ratio (%)', 'Rate (%)', 'Memory Ratio (%)']
+    
+    for i, ax in enumerate(axes):
+        ax.set_title(titles[i], fontsize=14, fontweight='bold')
+        ax.set_xlabel('Pipeline Stage', fontsize=12)
+        ax.set_ylabel(ylabels[i], fontsize=12)
+        ax.grid(True, alpha=0.3)
+        if i == 0:
+            ax.legend(loc='best')
+    
+    # 设置x轴标签
+    stage_count = max(len(method['record']) for method in data)
+    for ax in axes:
+        ax.set_xticks(range(stage_count))
+        ax.set_xticklabels([f'Stage {i+1}' for i in range(stage_count)])
+    
+    plt.tight_layout()
+    
+    # 保存图表
+    output_file = f'{output_dir}/pipeline_metrics.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file.replace('.png', '.pdf'), bbox_inches='tight')
+    print(f"Saved: {output_file}")
+    
+    plt.show()
+
+
 # Task 可视化相关信息：microbatch_id, stage_id, type(F,B,W), start_time, end_time, worker_id
 # 绘制甘特图，横轴为时间，纵轴为worker_id，不同颜色表示不同类型的任务，F用蓝色，B用橙色，W用绿色
 # stage_id 利用颜色的渐变来表示虚拟流水线的深度，即stage_id越大颜色越深

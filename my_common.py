@@ -2,3 +2,5 @@ DEBUG = False
 EPS = 1e-3
 MEM_PROTECT = True
 VISUALIZE = True
+INTER_BW = 256 # Gbps
+INTRA_BW = {"PCIe":100, "A800-NVLink":1500, "H20-NVLink":2700, "V100-NVLink":1100} # Gbps
