@@ -97,21 +97,21 @@ class Worker:
         if not self.exist_profiling():
             return self.model.flop16_per_layer("F") / (self.device.tflops * TFLOP)
         else:
-            return self.get_profiling("forward_time_per_layer")
+            return self.get_profiling("forward_time_per_layer") / 1000000.0
     
     def B_time_per_layer(self) -> float:
         # 返回该worker每层的后向时间
         if not self.exist_profiling():
             return self.model.flop16_per_layer("B") / (self.device.tflops * TFLOP)
         else:
-            return self.get_profiling("backward_time_per_layer") * (self.model.flop16_per_layer("B") / (self.model.flop16_per_layer("B") + self.model.flop16_per_layer("W")))
+            return self.get_profiling("backward_time_per_layer") / 1000000.0 * (self.model.flop16_per_layer("B") / (self.model.flop16_per_layer("B") + self.model.flop16_per_layer("W")))
     
     def W_time_per_layer(self) -> float:
         # 返回该worker每层的权重更新时间
         if not self.exist_profiling():
             return self.model.flop16_per_layer("W") / (self.device.tflops * TFLOP)
         else:
-            return self.get_profiling("backward_time_per_layer") * (self.model.flop16_per_layer("W") / (self.model.flop16_per_layer("B") + self.model.flop16_per_layer("W")))
+            return self.get_profiling("backward_time_per_layer") / 1000000.0 * (self.model.flop16_per_layer("W") / (self.model.flop16_per_layer("B") + self.model.flop16_per_layer("W")))
     
     def time_per_layer(self, task_type: str) -> float:
         if task_type == "F":

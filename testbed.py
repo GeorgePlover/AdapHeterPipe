@@ -298,6 +298,19 @@ class HandCraftedStrategy(Strategy):
             {"worker_id":3, "layer_range": (20, 24), "layer_num":4},
         ]
         return stages
+    
+class HexiScaleStrategy(Strategy): # TODO: 手动填入结果
+    def __init__(self):
+        super().__init__("HexiScaleStrategy")
+        
+    def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
+        stages = [
+            {"worker_id":0, "layer_range": (0, 8), "layer_num":9},
+            {"worker_id":1, "layer_range": (9, 17), "layer_num":9},
+            {"worker_id":2, "layer_range": (18, 20), "layer_num":3},
+            {"worker_id":3, "layer_range": (21, 23), "layer_num":3},
+        ]
+        return stages
 
 class SAState:
     def __init__(self, list_of_layers_workerid: List[Tuple[int, int]]):
@@ -450,7 +463,7 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
         workers.append(Worker(device=device, model=model))
     
     init_state = SAState([(0,0)])
-    init_state.from_stages(EvenVshapeStrategy().construct_stages(model, workers)) 
+    init_state.from_stages(DivByMemoryVshapeStrategy().construct_stages(model, workers)) 
     swap_color_rate = 0.5
     if pipeline_type != "adaptive":
         swap_color_rate = 0.0
@@ -584,16 +597,21 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryVshapeStrategy(),
         #     "pipe_schedule_type": "adaptive"
         # },
-        # {
-        #     "name": "SA",
-        #     "strategy": None,
-        #     "pipe_schedule_type": "adaptive"
-        # },
         {
-            "name": "SA-wo-adaptive",
+            "name": "SA",
             "strategy": None,
-            "pipe_schedule_type": "ZB_V"
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "HexiScale",
+            "strategy": HexiScaleStrategy(),
+            "pipe_schedule_type": "1F1B"
         }
+        # {
+        #     "name": "SA-wo-adaptive",
+        #     "strategy": None,
+        #     "pipe_schedule_type": "ZB_V"
+        # }
     ]
     res = []
     for method in methods:
@@ -660,15 +678,20 @@ if __name__ == "__main__":
     
     # test_normal_zb_vshape()
     
-    device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
-    model_name = "gpt3_13b"
-    create_folder("hhvv_tp2_13B_results")
-    run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
+    # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
+    # model_name = "gpt3_13b"
+    # create_folder("hhvv_tp2_13B_results")
+    # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
     
     # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
     # model_name = "gpt3_1.3b"
     # create_folder("hhvv_tp2_1_3B_results")
     # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_1_3B_results")
+    
+    # device_name_list = ["H20-96GB-TP2", "RTX5090-32GB", "RTX5090-32GB"]
+    # model_name = "gpt3_6.7b"
+    # create_folder("2h55_6.7b_results")
+    # run_exp(device_name_list, model_name, folder_name="2h55_6.7b_results")
     
     # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
     # model_name = "gpt3_760m"
@@ -682,10 +705,10 @@ if __name__ == "__main__":
     
     
     
-    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
-    # model_name = "gpt3_1.3b"
-    # create_folder("hh55_results")
-    # run_exp(device_name_list, model_name, folder_name="hh55_results")
+    device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
+    model_name = "gpt3_1.3b"
+    create_folder("hh55_results")
+    run_exp(device_name_list, model_name, folder_name="hh55_results")
     
     # device_name_list = ["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"]
     # model_name = "gpt3_1.3b"
