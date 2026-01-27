@@ -107,6 +107,13 @@ class DivByFlopsStrategy(Strategy):
     def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
         total_flops = sum(worker.device.tflops for worker in workers)
         pre_apply = [int(worker.device.tflops / total_flops * model.layer_num) for worker in workers]
+        
+        if all([worker.exist_profiling() for worker in workers]):
+            # 存在设备性能数据，按性能比例划分
+            total_flops = sum(1.0/worker.get_profiling("forward_time_per_layer") for worker in workers)
+            pre_apply = [int(1.0/worker.get_profiling("forward_time_per_layer") / total_flops * model.layer_num) for worker in workers]
+
+        
         remaining = model.layer_num - sum(pre_apply)
         for i in range(remaining):
             pre_apply[i % len(workers)] += 1
@@ -151,6 +158,7 @@ class DivByFlopsStrategyInterleaved(DivByFlopsStrategy):
             stage = interleaved_stages[stage_id]
             layer_sum += stage["layer_num"]
             stage["layer_range"] = (layer_sum - stage["layer_num"], layer_sum)
+        print(interleaved_stages)
         return interleaved_stages
     
 class DivByFlopsVshapeStrategy(Strategy):
@@ -434,6 +442,8 @@ def test_strategy(model_name:str,
         simulator.use_zb_schedule()
     elif pipe_schedule_type == "ZB_V":
         simulator.use_zv_vshape_schedule()
+    elif pipe_schedule_type == "Zorse":
+        simulator.use_interleaved_gpipe_schedule(interleaved_degree=2)
     
     simulator.run()
     if DEBUG:
@@ -597,15 +607,15 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryVshapeStrategy(),
         #     "pipe_schedule_type": "adaptive"
         # },
+        # {
+        #     "name": "SA",
+        #     "strategy": None,
+        #     "pipe_schedule_type": "adaptive"
+        # },
         {
-            "name": "SA",
-            "strategy": None,
-            "pipe_schedule_type": "adaptive"
-        },
-        {
-            "name": "HexiScale",
-            "strategy": HexiScaleStrategy(),
-            "pipe_schedule_type": "1F1B"
+            "name": "Zorse",
+            "strategy": DivByFlopsStrategyInterleaved(),
+            "pipe_schedule_type": "Zorse"
         }
         # {
         #     "name": "SA-wo-adaptive",
@@ -678,10 +688,10 @@ if __name__ == "__main__":
     
     # test_normal_zb_vshape()
     
-    # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
-    # model_name = "gpt3_13b"
-    # create_folder("hhvv_tp2_13B_results")
-    # run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
+    device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
+    model_name = "gpt3_13b"
+    create_folder("hhvv_tp2_13B_results")
+    run_exp(device_name_list, model_name, folder_name="hhvv_tp2_13B_results")
     
     # device_name_list = ["H20-96GB-TP2", "H20-96GB-TP2", "V100-32GB-TP2", "V100-32GB-TP2"]
     # model_name = "gpt3_1.3b"
@@ -705,10 +715,10 @@ if __name__ == "__main__":
     
     
     
-    device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
-    model_name = "gpt3_1.3b"
-    create_folder("hh55_results")
-    run_exp(device_name_list, model_name, folder_name="hh55_results")
+    # device_name_list = ["H20-96GB", "H20-96GB", "RTX5090-32GB", "RTX5090-32GB"]
+    # model_name = "gpt3_1.3b"
+    # create_folder("hh55_results")
+    # run_exp(device_name_list, model_name, folder_name="hh55_results")
     
     # device_name_list = ["V100-32GB", "V100-32GB", "RTX4090-24GB", "RTX4090-24GB"]
     # model_name = "gpt3_1.3b"
