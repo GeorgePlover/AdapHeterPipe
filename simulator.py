@@ -9,7 +9,7 @@ class SimConf:
                  microbatch_cnt: int,
                  workers: List[Worker],
                  stages: List[Dict], # {"worker_id":int, "layer_range": Tuple[int, int], "layer_num":int}
-                 OMMIT_OOM: bool = True,
+                 OMMIT_OOM: bool = False,
                  NO_W: bool = False,
                  ):
         self.stage_cnt = stage_cnt

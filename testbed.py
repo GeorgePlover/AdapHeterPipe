@@ -169,6 +169,12 @@ class DivByFlopsVshapeStrategy(Strategy):
         stage_cnt = len(workers)
         total_flops = sum(worker.device.tflops for worker in workers)
         pre_apply = [int(worker.device.tflops / total_flops * model.layer_num) for worker in workers]
+        
+        if all([worker.exist_profiling() for worker in workers]):
+            # 存在设备性能数据，按性能比例划分
+            total_flops = sum(1.0/worker.get_profiling("forward_time_per_layer") for worker in workers)
+            pre_apply = [int(1.0/worker.get_profiling("forward_time_per_layer") / total_flops * model.layer_num) for worker in workers]
+        
         remaining = model.layer_num - sum(pre_apply)
         for i in range(remaining):
             pre_apply[i % len(workers)] += 1
@@ -577,16 +583,16 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryStrategy(),
         #     "pipe_schedule_type": "ZB"
         # },
-        # {
-        #     "name": "ZB-Vshape(Even)",
-        #     "strategy": EvenVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-Vshape(DivByFlops)",
-        #     "strategy": DivByFlopsVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
+        {
+            "name": "ZB-Vshape(Even)",
+            "strategy": EvenVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-Vshape(DivByFlops)",
+            "strategy": DivByFlopsVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
         # {
         #     "name": "ZB-Vshape(DivByMemory)",
         #     "strategy": DivByMemoryVshapeStrategy(),
@@ -612,11 +618,11 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": None,
         #     "pipe_schedule_type": "adaptive"
         # },
-        {
-            "name": "Zorse",
-            "strategy": DivByFlopsStrategyInterleaved(),
-            "pipe_schedule_type": "Zorse"
-        }
+        # {
+        #     "name": "Zorse",
+        #     "strategy": DivByFlopsStrategyInterleaved(),
+        #     "pipe_schedule_type": "Zorse"
+        # }
         # {
         #     "name": "SA-wo-adaptive",
         #     "strategy": None,
@@ -735,7 +741,7 @@ if __name__ == "__main__":
     # create_folder("vh45_results")
     # run_exp(device_name_list, model_name, folder_name="vh45_results")
     
-    # OOM test
+    # # OOM test
     # device_name_list = ["V100-32GB", "H20-96GB", "RTX4090-24GB", "RTX5090-32GB"]
     # model_name = "gpt3_6.7b"
     # create_folder("vh45_oom_results")
