@@ -81,6 +81,7 @@ class Worker:
         
     def exist_profiling(self) ->bool:
         # 判断该worker是否存在profiling数据
+        return False
         model_tp = self.model.name+"_tp"+str(self.device.tp)
         return (
             (self.device.name in profiling_data)

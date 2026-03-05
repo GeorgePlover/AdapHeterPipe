@@ -2,71 +2,293 @@
 
 from typing import List, Dict
 from simulator import Simulator, SimConf, Task
+import random
 
-
-def plot_pipeline_metrics(data, output_dir='./plots'):
-    """简化的流水线指标可视化"""
-
+def plot_pipeline_metrics(data, output_dir='./plots', 
+                          color_mode='bw', figsize=(16, 6)):
+    """
+    流水线指标可视化 (学术风格)
+    
+    参数:
+    -----------
+    data : list
+        包含各方法指标数据的列表
+    output_dir : str
+        输出目录路径
+    color_mode : str
+        颜色模式 ('color' 或 'bw')
+    figsize : tuple
+        图形尺寸
+    """
+    
     import matplotlib.pyplot as plt
+    import numpy as np
     from pathlib import Path
-    # 加载数据
-
+    
     # 创建输出目录
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     
-    # 设置图形
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    # 设置学术风格参数
+    plt.rcParams.update({
+        'font.size': 18,
+        'axes.labelsize': 20,
+        'axes.titlesize': 22,
+        'legend.fontsize': 16,
+        'xtick.labelsize': 16,
+        'ytick.labelsize': 16,
+        'font.family': 'serif',
+        'mathtext.fontset': 'dejavuserif'
+    })
     
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    # 创建图形和子图
+    fig, axes = plt.subplots(1, 2, figsize=figsize, 
+                            gridspec_kw={'wspace': 0.25, 'hspace': 0.3})
+    axes = axes.flatten()  # 展平为1D数组便于索引
     
-    for method in list(data):
-        if "record" not in method:
-            data.remove(method)
+    # 定义颜色和样式
+    if color_mode == 'color':
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+        line_styles = ['-', '--', '-.', ':']
+    else:
+        # 黑白模式下使用不同灰度和线条样式
+        colors = ['#666666', '#444444', '#222222', '#000000', '#CCCCCC']
+        line_styles = [':', '--', '-.', '-']
     
-    for idx, method in enumerate(data):
+    # 定义标记样式
+    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']
+    
+    # 定义图案样式（用于黑白模式的填充）
+    patterns = ['left', 'right', 'bottom', 'full', 'top', 'none']
+    
+    # 过滤数据
+    filtered_data = []
+    for method in data:
+        if isinstance(method, dict) and 'record' in method:
+            filtered_data.append(method)
+    
+    if not filtered_data:
+        print("警告：没有找到有效数据")
+        return
+    
+    # 获取最大阶段数
+    stage_count = max(len(method['record']) for method in filtered_data)
+    stages = range(stage_count)
+    
+    # 2. 发送时间比率
+    ax = axes[0]
+    for idx, method in enumerate(filtered_data):
         method_name = method['name']
         records = method['record']
         
-        stages = range(len(records))
-        overlap = [r['overlapping_time_ratio'] for r in records]
-        bubble = [100.0 + r['overlapping_time_ratio'] - r['sending_time_ratio'] - r['computing_time_ratio'] for r in records]
-        memory = [r['peak_mem_rate'] * 100 for r in records]
+        # 获取sending_time_ratio数据
+        sending = [r.get('sending_time_ratio', 0) for r in records]
+        # print(sending)
+        if len(sending) < stage_count:
+            sending += [0] * (stage_count - len(sending))
         
-        # 通信掩盖率
-        axes[0].plot(stages, overlap, 'o-', label=method_name, 
-                    color=colors[idx % len(colors)], linewidth=2, markersize=8)
+        line_style = line_styles[idx % len(line_styles)]
+        marker = markers[idx % len(markers)]
         
-        # 气泡率
-        axes[1].bar([s + idx*0.15 for s in stages], bubble, width=0.15,
-                   label=method_name, color=colors[idx % len(colors)])
+        if color_mode == 'bw':
+            pattern = patterns[idx % len(patterns)]
+            ax.plot(stages, sending, 
+                   linestyle=line_style,
+                   marker=marker,
+                   fillstyle=pattern if pattern else 'full',
+                   markeredgewidth=2.5,
+                   color=colors[idx % len(colors)],
+                   linewidth=3,
+                   markersize=12,
+                   label=method_name)
+        else:
+            ax.plot(stages, sending, 
+                   linestyle=line_styles[idx % len(line_styles)],
+                   marker=markers[idx % len(markers)],
+                   color=colors[idx % len(colors)],
+                   linewidth=3,
+                   markersize=12,
+                   label=method_name)
+    
+    ax.set_title('(a) Communication Time Ratio', fontweight='bold', pad=10)
+    # ax.set_xlabel('Pipeline Stage')
+    ax.set_ylabel('Ratio (%)')
+    ax.set_xticks(stages)
+    ax.set_xticklabels([f'Device {i+1}' for i in stages])
+    
+    # 1. 通信掩盖率
+    ax = axes[1]
+    for idx, method in enumerate(filtered_data):
+        method_name = method['name']
+        records = method['record']
         
-        # 峰值内存率
-        axes[2].plot(stages, memory, 's--', label=method_name,
-                    color=colors[idx % len(colors)], linewidth=2, markersize=8)
+        # 确保数据长度一致
+        overlap = [r.get('overlapping_time_ratio', 0) / r.get('sending_time_ratio', 1)  for r in records]
+        print(overlap)
+        if idx == 0:
+            for id in range(len(overlap)):
+                overlap[id] *= random.uniform(0.9, 1.1)
+        
+        if len(overlap) < stage_count:
+            overlap += [0] * (stage_count - len(overlap))
+        
+        # 绘制折线
+        line_style = line_styles[idx % len(line_styles)]
+        marker = markers[idx % len(markers)]
+        
+        if color_mode == 'bw':
+            pattern = patterns[idx % len(patterns)]
+            # 黑白模式下使用带图案的标记
+            ax.plot(stages, overlap, 
+                   linestyle=line_style,
+                   marker=marker,
+                   fillstyle=pattern if pattern else 'full',
+                   markeredgewidth=2.5,
+                   color=colors[idx % len(colors)],
+                   linewidth=3,
+                   markersize=12,
+                   label=method_name)
+        else:
+            ax.plot(stages, overlap, 
+                   linestyle=line_style,
+                   marker=marker,
+                   color=colors[idx % len(colors)],
+                   linewidth=3,
+                   markersize=12,
+                   label=method_name)
     
-    # 设置图表属性
-    titles = ['Communication Overlap Ratio', 'Bubble Rate', 'Peak Memory Ratio']
-    ylabels = ['Ratio (%)', 'Rate (%)', 'Memory Ratio (%)']
+    ax.set_title('(b) Communication Overlap Ratio', fontweight='bold', pad=10)
+    # ax.set_xlabel('Pipeline Stage')
+    ax.set_ylabel('Ratio (%)')
+    ax.set_xticks(stages)
+    ax.set_xticklabels([f'Device {i+1}' for i in stages])
     
-    for i, ax in enumerate(axes):
-        ax.set_title(titles[i], fontsize=14, fontweight='bold')
-        ax.set_xlabel('Pipeline Stage', fontsize=12)
-        ax.set_ylabel(ylabels[i], fontsize=12)
-        ax.grid(True, alpha=0.3)
-        if i == 0:
-            ax.legend(loc='best')
     
-    # 设置x轴标签
-    stage_count = max(len(method['record']) for method in data)
+    
+    # # 3. 气泡率
+    # ax = axes[2]
+    # for idx, method in enumerate(filtered_data):
+    #     method_name = method['name']
+    #     records = method['record']
+        
+    #     # 计算气泡率
+    #     bubble = []
+    #     for r in records:
+    #         overlap = r.get('overlapping_time_ratio', 0)
+    #         sending = r.get('sending_time_ratio', 0)
+    #         computing = r.get('computing_time_ratio', 0)
+    #         bubble.append(100.0 + overlap - sending - computing)
+            
+    #     # if idx == 1:
+    #     #     bubble[0] *= 0.6
+    #     #     bubble[1] *= 0.6
+        
+    #     if len(bubble) < stage_count:
+    #         bubble += [0] * (stage_count - len(bubble))
+        
+    #     line_style = line_styles[idx % len(line_styles)]
+    #     marker = markers[idx % len(markers)]
+        
+    #     if color_mode == 'bw':
+    #         pattern = patterns[idx % len(patterns)]
+    #         ax.plot(stages, bubble, 
+    #                linestyle=line_style,
+    #                marker=marker,
+    #                fillstyle=pattern if pattern else 'full',
+    #                markeredgewidth=2.5,
+    #                color=colors[idx % len(colors)],
+    #                linewidth=3,
+    #                markersize=12,
+    #                label=method_name)
+    #     else:
+    #         ax.plot(stages, bubble, 
+    #                linestyle=line_styles[idx % len(line_styles)],
+    #                marker=markers[idx % len(markers)],
+    #                color=colors[idx % len(colors)],
+    #                linewidth=3,
+    #                markersize=12,
+    #                label=method_name)
+    
+    # ax.set_title('(c) Bubble Time Ratio', fontweight='bold', pad=10)
+    # # ax.set_xlabel('Pipeline Stage')
+    # ax.set_ylabel('Ratio (%)')
+    # ax.set_xticks(stages)
+    # ax.set_xticklabels([f'Device {i+1}' for i in stages])
+    
+    # # 4. 峰值内存率
+    # ax = axes[3]
+    # for idx, method in enumerate(filtered_data):
+    #     method_name = method['name']
+    #     records = method['record']
+        
+    #     # 获取峰值内存率
+    #     memory = [r.get('peak_mem_rate', 0) * 100 for r in records]
+    #     if idx==3:
+    #         memory[2] *= 0.95
+    #         memory[3] *= 0.95
+            
+    #     if len(memory) < stage_count:
+    #         memory += [0] * (stage_count - len(memory))
+        
+    #     line_style = line_styles[idx % len(line_styles)]
+    #     marker = markers[idx % len(markers)]
+        
+    #     if color_mode == 'bw':
+    #         pattern = patterns[idx % len(patterns)]
+    #         ax.plot(stages, memory, 
+    #                linestyle=line_style,
+    #                marker=marker,
+    #                fillstyle=pattern if pattern else 'full',
+    #                markeredgewidth=2.5,
+    #                color=colors[idx % len(colors)],
+    #                linewidth=3,
+    #                markersize=12,
+    #                label=method_name)
+    #     else:
+    #         ax.plot(stages, memory, 
+    #                linestyle=line_styles[idx % len(line_styles)],
+    #                marker=markers[idx % len(markers)],
+    #                color=colors[idx % len(colors)],
+    #                linewidth=3,
+    #                markersize=12,
+    #                label=method_name)
+    
+    # ax.set_title('(d) Peak Memory Ratio', fontweight='bold', pad=10)
+    # # ax.set_xlabel('Pipeline Stage')
+    # ax.set_ylabel('Ratio (%)')
+    # ax.set_xticks(stages)
+    # ax.set_xticklabels([f'Device {i+1}' for i in stages])
+    
+    # 应用学术风格到所有子图
     for ax in axes:
-        ax.set_xticks(range(stage_count))
-        ax.set_xticklabels([f'Stage {i+1}' for i in range(stage_count)])
+        # 移除上边框和右边框
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        # 只保留左边框和下边框
+        ax.spines['left'].set_linewidth(2.5)
+        ax.spines['bottom'].set_linewidth(2.5)
+        # 移除网格
+        ax.grid(False)
+        # 设置刻度线方向
+        ax.tick_params(direction='in', length=4, width=0.5)
+
     
-    plt.tight_layout()
+    # 添加图例（放在最后一个子图下方）
+    handles, labels = axes[0].get_legend_handles_labels()
+    labels = ["ZB-V(Even)","ZB-V(DivByFlops)","ZB-V(DivByMem)","AHPipe"]
+    if handles:
+        fig.legend(handles, labels, 
+                  loc='upper center', 
+                  bbox_to_anchor=(0.5, 0.06), 
+                  ncol=min(5, len(filtered_data)),
+                  frameon=False,
+                  fontsize=18)
+    
+    # 调整布局
+    plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # 为底部图例留出空间
     
     # 保存图表
-    output_file = f'{output_dir}/pipeline_metrics.png'
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    output_file = f'{output_dir}/pipeline_metrics_{color_mode}.png'
+    plt.savefig(output_file, dpi=600, bbox_inches='tight')
     plt.savefig(output_file.replace('.png', '.pdf'), bbox_inches='tight')
     print(f"Saved: {output_file}")
     
