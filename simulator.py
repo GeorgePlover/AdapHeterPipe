@@ -70,7 +70,7 @@ class Task:
             # if self.stage_id != next_task.stage_id:
             #     print(self.worker.device.node_id, next_task.worker.device.node_id)
             # print(res,"sec")
-            return res
+            return res + 0.0005
         return 0.0
     
     def release_succ_tasks(self, send_time: List)-> List['Task']: # topological sort
@@ -237,7 +237,7 @@ class WorkerSim:
 class Simulator:
     def __init__(self, config: SimConf):
         self.config = config
-        self.STABLE_SCHEDULE = config.OMMIT_OOM  # 是否使用稳定调度策略
+        self.STABLE_SCHEDULE = False  # 是否使用稳定调度策略
         self.NO_W = config.NO_W  # 是否使用W任务
         self.tasks_array = self._task_matrix(config) # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
         self.worker_sims = self._worker_sims(config)    

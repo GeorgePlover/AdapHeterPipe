@@ -1,5 +1,5 @@
 # 处理输入，输出profile数据
-from my_common import DEBUG, INTRA_BW, INTER_BW
+from my_common import DEBUG, INTRA_BW, INTER_BW, RECOMPUTE_RATIO
 from typing import List, Dict
 import json
 TFLOP = 1e12
@@ -81,7 +81,7 @@ class Worker:
         
     def exist_profiling(self) ->bool:
         # 判断该worker是否存在profiling数据
-        return False
+        # return False
         model_tp = self.model.name+"_tp"+str(self.device.tp)
         return (
             (self.device.name in profiling_data)

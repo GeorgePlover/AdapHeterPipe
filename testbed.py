@@ -295,14 +295,10 @@ class HandCraftedStrategy(Strategy):
         
     def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
         stages = [
-            {"worker_id":0, "layer_range": (0, 2), "layer_num":2},
-            {"worker_id":0, "layer_range": (2, 4), "layer_num":2},
-            {"worker_id":1, "layer_range": (4, 6), "layer_num":2},
-            {"worker_id":1, "layer_range": (6, 8), "layer_num":2},
-            {"worker_id":2, "layer_range": (8, 12), "layer_num":4},
-            {"worker_id":2, "layer_range": (12, 16), "layer_num":4},
-            {"worker_id":3, "layer_range": (16, 20), "layer_num":4},
-            {"worker_id":3, "layer_range": (20, 24), "layer_num":4},
+            {"worker_id":0, "layer_range": (0, 8), "layer_num":9},
+            {"worker_id":1, "layer_range": (9, 17), "layer_num":9},
+            {"worker_id":2, "layer_range": (18, 20), "layer_num":3},
+            {"worker_id":3, "layer_range": (21, 23), "layer_num":3}
         ]
         return stages
 
@@ -534,51 +530,51 @@ def test_normal_zb_vshape(test_name = "ZB_Vshape_test_1.3B"):
     
 def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
     methods = [
-        # {
-        #     "name": "1F1B(Even)",
-        #     "strategy": EvenLayerStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "1F1B(DivByFlops)",
-        #     "strategy": DivByFlopsStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "1F1B(DivByMemory)",
-        #     "strategy": DivByMemoryStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(Even)",
-        #     "strategy": EvenLayerStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(DivByFlops)",
-        #     "strategy": DivByFlopsStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(DivByMemory)",
-        #     "strategy": DivByMemoryStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "ZB(Even)",
-        #     "strategy": EvenLayerStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
-        # {
-        #     "name": "ZB(DivByFlops)",
-        #     "strategy": DivByFlopsStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
-        # {
-        #     "name": "ZB(DivByMemory)",
-        #     "strategy": DivByMemoryStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
+        {
+            "name": "1F1B(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(Even)",
+            "strategy": EvenLayerStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "ZB(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
         {
             "name": "ZB-Vshape(Even)",
             "strategy": EvenVshapeStrategy(),
@@ -609,6 +605,11 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryVshapeStrategy(),
         #     "pipe_schedule_type": "adaptive"
         # },
+        {
+            "name": "HexiScale",
+            "strategy": HandCraftedStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
         {
             "name": "SA",
             "strategy": None,
@@ -676,11 +677,15 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         result_dict = {r["name"]: to_throughput(r["e2e_time"]) for r in res}
         from visual import generate_result_bar_chart
         generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.pdf")
-        for item in result_dict:
-            print(f"Method: {item}, Throughput: {(result_dict[item]/1000):.2f} K tokens/sec")
+        for item in res:
+            if "record" not in item:
+                print(f"Method: {item['name']} failed with error: {item['error']}")
+                continue
+            record = item["record"]
+            print(f"Method: {item['name']}, Throughput: {(to_throughput(item['e2e_time'])/1000):.2f} K tokens/sec, bubble rate:{1 - sum( [ (worker_info['computing_time'] / item['e2e_time'])  for worker_info in record ] )/len(record):.4f}")
             
-        from visual import plot_pipeline_metrics
-        plot_pipeline_metrics(res, f"{folder_name}/pipeline_metrics_{model_name.replace('.','_')}.pdf")
+        # from visual import plot_pipeline_metrics
+        # plot_pipeline_metrics(res, f"{folder_name}/pipeline_metrics_{model_name.replace('.','_')}.pdf")
 
 def create_folder(folder_name: str):
     import os
