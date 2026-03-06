@@ -434,10 +434,14 @@ def test_strategy(model_name:str,
             print(f"Worker Memory Peak Rate: {worker_sim.worker_peak_mem_rate():.4f}, Bubble Rate: {worker_sim.worker_bubble_rate():.4f}")
         print(f"E2E time: {simulator.pipe_e2e_time()} sec\n\n")    
         
+    res = simulator.pipe_e2e_time()
     
     if VISUALIZE:
         from visual import generate_gantt_chart
         generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png")
+        no_bubble_time_mean = sum([worker_sim.time_total_busy for worker_sim in simulator.worker_sims]) / len(simulator.worker_sims)
+        print("avg bubble rate: ",1 - no_bubble_time_mean/res )
+        
 
     return simulator.pipe_e2e_time()
         
@@ -450,7 +454,7 @@ def test_SA(model_name:str, workers_device_names: List[str], test_name: str = "S
         workers.append(Worker(device=device, model=model))
     
     init_state = SAState([(0,0)])
-    init_state.from_stages(EvenVshapeStrategy().construct_stages(model, workers)) 
+    init_state.from_stages(DivByMemoryVshapeStrategy().construct_stages(model, workers)) 
     swap_color_rate = 0.5
     if pipeline_type != "adaptive":
         swap_color_rate = 0.0
@@ -509,86 +513,86 @@ def test_normal_zb_vshape():
     
 def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
     methods = [
-        # {
-        #     "name": "1F1B(Even)",
-        #     "strategy": EvenLayerStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "1F1B(DivByFlops)",
-        #     "strategy": DivByFlopsStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "1F1B(DivByMemory)",
-        #     "strategy": DivByMemoryStrategy(),
-        #     "pipe_schedule_type": "1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(Even)",
-        #     "strategy": EvenLayerStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(DivByFlops)",
-        #     "strategy": DivByFlopsStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "Interleaved_1F1B(DivByMemory)",
-        #     "strategy": DivByMemoryStrategyInterleaved(),
-        #     "pipe_schedule_type": "Interleaved_1F1B"
-        # },
-        # {
-        #     "name": "ZB(Even)",
-        #     "strategy": EvenLayerStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
-        # {
-        #     "name": "ZB(DivByFlops)",
-        #     "strategy": DivByFlopsStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
-        # {
-        #     "name": "ZB(DivByMemory)",
-        #     "strategy": DivByMemoryStrategy(),
-        #     "pipe_schedule_type": "ZB"
-        # },
-        # {
-        #     "name": "ZB-Vshape(Even)",
-        #     "strategy": EvenVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-Vshape(DivByFlops)",
-        #     "strategy": DivByFlopsVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-Vshape(DivByMemory)",
-        #     "strategy": DivByMemoryVshapeStrategy(),
-        #     "pipe_schedule_type": "ZB_V"
-        # },
-        # {
-        #     "name": "ZB-V-adaptive(Even)",
-        #     "strategy": EvenVshapeStrategy(),
-        #     "pipe_schedule_type": "adaptive"
-        # },
-        # {
-        #     "name": "ZB-V-adaptive(DivByFlops)",
-        #     "strategy": DivByFlopsVshapeStrategy(),
-        #     "pipe_schedule_type": "adaptive"
-        # },
-        # {
-        #     "name": "ZB-V-adaptive(DivByMemory)",
-        #     "strategy": DivByMemoryVshapeStrategy(),
-        #     "pipe_schedule_type": "adaptive"
-        # },
-        # {
-        #     "name": "SA",
-        #     "strategy": None,
-        #     "pipe_schedule_type": "adaptive"
-        # },
+        {
+            "name": "1F1B(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(Even)",
+            "strategy": EvenLayerStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByFlops)",
+            "strategy": DivByFlopsStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "Interleaved_1F1B(DivByMemory)",
+            "strategy": DivByMemoryStrategyInterleaved(),
+            "pipe_schedule_type": "Interleaved_1F1B"
+        },
+        {
+            "name": "ZB(Even)",
+            "strategy": EvenLayerStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByFlops)",
+            "strategy": DivByFlopsStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB(DivByMemory)",
+            "strategy": DivByMemoryStrategy(),
+            "pipe_schedule_type": "ZB"
+        },
+        {
+            "name": "ZB-Vshape(Even)",
+            "strategy": EvenVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-Vshape(DivByFlops)",
+            "strategy": DivByFlopsVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-Vshape(DivByMemory)",
+            "strategy": DivByMemoryVshapeStrategy(),
+            "pipe_schedule_type": "ZB_V"
+        },
+        {
+            "name": "ZB-V-adaptive(Even)",
+            "strategy": EvenVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "ZB-V-adaptive(DivByFlops)",
+            "strategy": DivByFlopsVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "ZB-V-adaptive(DivByMemory)",
+            "strategy": DivByMemoryVshapeStrategy(),
+            "pipe_schedule_type": "adaptive"
+        },
+        {
+            "name": "SA",
+            "strategy": None,
+            "pipe_schedule_type": "adaptive"
+        },
         {
             "name": "SA-wo-adaptive",
             "strategy": None,
@@ -649,7 +653,7 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         from visual import generate_result_bar_chart
         generate_result_bar_chart(result_dict, f"{folder_name}/result_bar_chart_{model_name.replace('.','_')}.png")
         for item in result_dict:
-            print(f"Method: {item}, Throughput: {(result_dict[item]/1000):.2f} K tokens/sec")
+            print(f"Method: {item}, Throughput: {(result_dict[item]/1000 * 1000000):.2f} K tokens/sec")
 
 def create_folder(folder_name: str):
     import os
