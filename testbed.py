@@ -107,6 +107,12 @@ class DivByFlopsStrategy(Strategy):
     def construct_stages(self, model:Model, workers: List[Worker]) -> List[Dict]:
         total_flops = sum(worker.device.tflops for worker in workers)
         pre_apply = [int(worker.device.tflops / total_flops * model.layer_num) for worker in workers]
+        
+        if all([worker.exist_profiling() for worker in workers]):
+            # 存在设备性能数据，按性能比例划分
+            total_flops = sum(1.0/worker.get_profiling("forward_time_per_layer") for worker in workers)
+            pre_apply = [int(1.0/worker.get_profiling("forward_time_per_layer") / total_flops * model.layer_num) for worker in workers]
+        
         remaining = model.layer_num - sum(pre_apply)
         for i in range(remaining):
             pre_apply[i % len(workers)] += 1
@@ -427,6 +433,9 @@ def test_strategy(model_name:str,
         simulator.use_zv_vshape_schedule()
     elif pipe_schedule_type == "Gpipe":
         simulator.use_gpipe_schedule()
+    elif pipe_schedule_type == "Zorse":
+        simulator.use_interleaved_gpipe_schedule(interleaved_degree=2)
+    
     
     simulator.run()
     workersim_record = simulator.workers_record_res()
@@ -530,66 +539,66 @@ def test_normal_zb_vshape(test_name = "ZB_Vshape_test_1.3B"):
     
 def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
     methods = [
-        {
-            "name": "1F1B(Even)",
-            "strategy": EvenLayerStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "1F1B(DivByFlops)",
-            "strategy": DivByFlopsStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "1F1B(DivByMemory)",
-            "strategy": DivByMemoryStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(Even)",
-            "strategy": EvenLayerStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(DivByFlops)",
-            "strategy": DivByFlopsStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "Interleaved_1F1B(DivByMemory)",
-            "strategy": DivByMemoryStrategyInterleaved(),
-            "pipe_schedule_type": "Interleaved_1F1B"
-        },
-        {
-            "name": "ZB(Even)",
-            "strategy": EvenLayerStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB(DivByFlops)",
-            "strategy": DivByFlopsStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB(DivByMemory)",
-            "strategy": DivByMemoryStrategy(),
-            "pipe_schedule_type": "ZB"
-        },
-        {
-            "name": "ZB-Vshape(Even)",
-            "strategy": EvenVshapeStrategy(),
-            "pipe_schedule_type": "ZB_V"
-        },
-        {
-            "name": "ZB-Vshape(DivByFlops)",
-            "strategy": DivByFlopsVshapeStrategy(),
-            "pipe_schedule_type": "ZB_V"
-        },
-        {
-            "name": "ZB-Vshape(DivByMemory)",
-            "strategy": DivByMemoryVshapeStrategy(),
-            "pipe_schedule_type": "ZB_V"
-        },
+        # {
+        #     "name": "1F1B(Even)",
+        #     "strategy": EvenLayerStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "1F1B(DivByFlops)",
+        #     "strategy": DivByFlopsStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "1F1B(DivByMemory)",
+        #     "strategy": DivByMemoryStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(Even)",
+        #     "strategy": EvenLayerStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(DivByFlops)",
+        #     "strategy": DivByFlopsStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "Interleaved_1F1B(DivByMemory)",
+        #     "strategy": DivByMemoryStrategyInterleaved(),
+        #     "pipe_schedule_type": "Interleaved_1F1B"
+        # },
+        # {
+        #     "name": "ZB(Even)",
+        #     "strategy": EvenLayerStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB(DivByFlops)",
+        #     "strategy": DivByFlopsStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB(DivByMemory)",
+        #     "strategy": DivByMemoryStrategy(),
+        #     "pipe_schedule_type": "ZB"
+        # },
+        # {
+        #     "name": "ZB-Vshape(Even)",
+        #     "strategy": EvenVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
+        # {
+        #     "name": "ZB-Vshape(DivByFlops)",
+        #     "strategy": DivByFlopsVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
+        # {
+        #     "name": "ZB-Vshape(DivByMemory)",
+        #     "strategy": DivByMemoryVshapeStrategy(),
+        #     "pipe_schedule_type": "ZB_V"
+        # },
         # {
         #     "name": "ZB-V-adaptive(Even)",
         #     "strategy": EvenVshapeStrategy(),
@@ -605,15 +614,20 @@ def run_exp(device_name_list: List[str], model_name: str, folder_name: str):
         #     "strategy": DivByMemoryVshapeStrategy(),
         #     "pipe_schedule_type": "adaptive"
         # },
+        # {
+        #     "name": "HexiScale",
+        #     "strategy": HandCraftedStrategy(),
+        #     "pipe_schedule_type": "1F1B"
+        # },
+        # {
+        #     "name": "SA",
+        #     "strategy": None,
+        #     "pipe_schedule_type": "adaptive"
+        # },
         {
-            "name": "HexiScale",
-            "strategy": HandCraftedStrategy(),
-            "pipe_schedule_type": "1F1B"
-        },
-        {
-            "name": "SA",
-            "strategy": None,
-            "pipe_schedule_type": "adaptive"
+            "name": "Zorse",
+            "strategy": DivByFlopsStrategyInterleaved(),
+            "pipe_schedule_type": "Zorse"
         },
         # {
         #     "name": "SA-wo-adaptive",

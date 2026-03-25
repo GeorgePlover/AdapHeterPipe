@@ -9,7 +9,7 @@ class SimConf:
                  microbatch_cnt: int,
                  workers: List[Worker],
                  stages: List[Dict], # {"worker_id":int, "layer_range": Tuple[int, int], "layer_num":int}
-                 OMMIT_OOM: bool = False,
+                 OMMIT_OOM: bool = True,
                  NO_W: bool = False,
                  ):
         self.stage_cnt = stage_cnt
@@ -282,26 +282,25 @@ class Simulator:
                             task.prev_task.append(prev_task)
                             prev_task.succ_task.append(task)
                     elif task_type == "B":
-                        if stage_id > 0:
-                            succ_task = mb_tasks[stage_id-1]["B"]
-                            task.succ_task.append(succ_task)
-                            succ_task.prev_task.append(task)
                         if mb_id > 0:
                             prev_task = task_matrix[mb_id - 1][stage_id]["B"]
                             task.prev_task.append(prev_task)
                             prev_task.succ_task.append(task)
-                        if stage_id == config.stage_cnt - 1:
-                            prev_task = type2task["F"]
-                            task.prev_task.append(prev_task)
-                            prev_task.succ_task.append(task)
+                        prev_task = type2task["F"]
+                        task.prev_task.append(prev_task)
+                        prev_task.succ_task.append(task)
                     elif task_type == "W":
+                        prev_task = type2task["B"]
+                        task.prev_task.append(prev_task)
+                        prev_task.succ_task.append(task)
                         if mb_id > 0:
                             prev_task = task_matrix[mb_id - 1][stage_id]["W"]
                             task.prev_task.append(prev_task)
                             prev_task.succ_task.append(task)
-                        prev_task = type2task["B"]
-                        task.prev_task.append(prev_task)
-                        prev_task.succ_task.append(task)
+                        if stage_id > 0:
+                            succ_task = mb_tasks[stage_id-1]["W"]
+                            task.succ_task.append(succ_task)
+                            succ_task.prev_task.append(task)
                     
                 mb_tasks.append(type2task)
             task_matrix.append(mb_tasks)
@@ -382,7 +381,48 @@ class Simulator:
             for b_id in range(len(Blist) - warmup, len(Blist)): # Cooldown
                 task_ordered.append(Blist[b_id])
             self.apply_chain_tasks(task_ordered)
+    
+    def use_interleaved_gpipe_schedule(self, interleaved_degree: int):
+        '''
+            使用交错gpipe调度策略
+        '''
+        assert self.STABLE_SCHEDULE is False, "STABLE_SCHEDULE should be False"
+        assert self.config.worker_cnt * interleaved_degree == self.config.stage_cnt, "stage_cnt should be equal to worker_cnt * vp"
+        assert self.config.microbatch_cnt % self.config.worker_cnt == 0, "microbatch_cnt should be divisible by worker_cnt"
+        
+        self.STABLE_SCHEDULE = True
+        
+        config = self.config
+        matrix = self.tasks_array # [microbatch_id][stage_id]["F"/"B"/"W"]->Task
+        stage_cnt = config.stage_cnt
+        worker_cnt = config.worker_cnt
+        mb_cnt = config.microbatch_cnt
+        vp_cnt = interleaved_degree
+        
+        
+        
+        for worker_id in range(worker_cnt):
+            Flist = []
+            Blist = []
+            WList = []
+            for chunk_id in range(mb_cnt // worker_cnt):
+                for stage_id in range(worker_id, stage_cnt, worker_cnt):
+                    for mb_id in range(chunk_id * worker_cnt, (chunk_id + 1) * worker_cnt):
+                        Flist.append(matrix[mb_id][stage_id]["F"])
+                for stage_id in range(worker_id+worker_cnt*(vp_cnt-1), -1, -worker_cnt):
+                    for mb_id in range(chunk_id * worker_cnt, (chunk_id + 1) * worker_cnt):
+                        Blist.append(matrix[mb_id][stage_id]["B"])
+                        WList.append(matrix[mb_id][stage_id]["W"])
+                        
+            task_ordered = []
+            for f_id in range(len(Flist)): # Farward
+                task_ordered.append(Flist[f_id])
+            for b_id in range(len(Blist)): # Backward
+                task_ordered.append(Blist[b_id])
+                task_ordered.append(WList[b_id])
             
+            self.apply_chain_tasks(task_ordered)
+    
     def use_zb_schedule(self):
         '''
             使用ZB调度策略

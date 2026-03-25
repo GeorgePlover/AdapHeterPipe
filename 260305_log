@@ -1,0 +1,436 @@
+Gantt chart saved to vh45_760m_results/1F1B(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.491866508962867
+Method: 1F1B(Even), E2E Time: 674356.9604625001 sec
+Gantt chart saved to vh45_760m_results/1F1B(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.6097181612617713
+Method: 1F1B(DivByFlops), E2E Time: 937478.3008083337 sec
+Gantt chart saved to vh45_760m_results/1F1B(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.3892603405913919
+Method: 1F1B(DivByMemory), E2E Time: 511287.0367750002 sec
+Gantt chart saved to vh45_760m_results/Interleaved_1F1B(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4514064000744653
+Method: Interleaved_1F1B(Even), E2E Time: 624621.4986312503 sec
+Gantt chart saved to vh45_760m_results/Interleaved_1F1B(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.5916849384065425
+Method: Interleaved_1F1B(DivByFlops), E2E Time: 896074.5988375003 sec
+Gantt chart saved to vh45_760m_results/Interleaved_1F1B(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.34374342603607144
+Method: Interleaved_1F1B(DivByMemory), E2E Time: 475824.9792666666 sec
+Gantt chart saved to vh45_760m_results/ZB(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4433113093322041
+Method: ZB(Even), E2E Time: 615538.5627000001 sec
+Gantt chart saved to vh45_760m_results/ZB(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.5904432122071517
+Method: ZB(DivByFlops), E2E Time: 893357.8100083335 sec
+Gantt chart saved to vh45_760m_results/ZB(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.34359630165740573
+Method: ZB(DivByMemory), E2E Time: 475718.32926666684 sec
+Gantt chart saved to vh45_760m_results/ZB-Vshape(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.42430061228754046
+Method: ZB-Vshape(Even), E2E Time: 595212.29975 sec
+Gantt chart saved to vh45_760m_results/ZB-Vshape(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.5824815986826914
+Method: ZB-Vshape(DivByFlops), E2E Time: 876322.4659375002 sec
+Gantt chart saved to vh45_760m_results/ZB-Vshape(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.33075810024053
+Method: ZB-Vshape(DivByMemory), E2E Time: 466592.52926666656 sec
+Gantt chart saved to vh45_760m_results/ZB-V-adaptive(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.42430061228754035
+Method: ZB-V-adaptive(Even), E2E Time: 595212.2997500001 sec
+Gantt chart saved to vh45_760m_results/ZB-V-adaptive(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.5824815986826913
+Method: ZB-V-adaptive(DivByFlops), E2E Time: 876322.4659375001 sec
+Gantt chart saved to vh45_760m_results/ZB-V-adaptive(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.3307581002405301
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 466592.5292666667 sec
+[(2, 0), (1, 1), (7, 1), (1, 3), (2, 3), (3, 2), (5, 2), (3, 0)] 313089.6417333336
+Gantt chart saved to vh45_760m_results/SA_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.07001841574392209
+[(1, 0), (3, 1), (3, 2), (1, 3), (2, 3), (6, 2), (5, 1), (3, 0)] 310860.38686666667
+Gantt chart saved to vh45_760m_results/SA-wo-adaptive_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.08609130083471239
+Result bar chart saved to vh45_760m_results/result_bar_chart_gpt3_760m.png
+Method: 1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB(Even), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: SA, Throughput: 0.00 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 0.00 K tokens/sec
+
+-------
+
+Gantt chart saved to vh45_results/1F1B(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.39341424246411527
+Method: 1F1B(Even), E2E Time: 724888.2215125004 sec
+Gantt chart saved to vh45_results/1F1B(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.5532933253059288
+Method: 1F1B(DivByFlops), E2E Time: 975414.1947250004 sec
+Gantt chart saved to vh45_results/1F1B(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.42379856836444285
+Method: 1F1B(DivByMemory), E2E Time: 717448.1992375004 sec
+Gantt chart saved to vh45_results/Interleaved_1F1B(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.33841548260297494
+Method: Interleaved_1F1B(Even), E2E Time: 664626.9061812502 sec
+Gantt chart saved to vh45_results/Interleaved_1F1B(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.5235683569937029
+Method: Interleaved_1F1B(DivByFlops), E2E Time: 914557.2880624997 sec
+Gantt chart saved to vh45_results/Interleaved_1F1B(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.38348571213716265
+Method: Interleaved_1F1B(DivByMemory), E2E Time: 670535.4404000003 sec
+Gantt chart saved to vh45_results/ZB(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2939918095493044
+Method: ZB(Even), E2E Time: 622807.0395249999 sec
+Gantt chart saved to vh45_results/ZB(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.5151322621754504
+Method: ZB(DivByFlops), E2E Time: 898645.1301749999 sec
+Gantt chart saved to vh45_results/ZB(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.37855001615752026
+Method: ZB(DivByMemory), E2E Time: 665209.8966500002 sec
+Gantt chart saved to vh45_results/ZB-Vshape(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2671488954986475
+Method: ZB-Vshape(Even), E2E Time: 599994.8260625004 sec
+Gantt chart saved to vh45_results/ZB-Vshape(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.5050431856096063
+Method: ZB-Vshape(DivByFlops), E2E Time: 880327.3714125003 sec
+Gantt chart saved to vh45_results/ZB-Vshape(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3678177911015822
+Method: ZB-Vshape(DivByMemory), E2E Time: 653916.9779000008 sec
+Gantt chart saved to vh45_results/ZB-V-adaptive(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2671488954986475
+Method: ZB-V-adaptive(Even), E2E Time: 599994.8260625004 sec
+Gantt chart saved to vh45_results/ZB-V-adaptive(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.5050431856096063
+Method: ZB-V-adaptive(DivByFlops), E2E Time: 880327.3714125 sec
+Gantt chart saved to vh45_results/ZB-V-adaptive(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3678177911015822
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 653916.977900001 sec
+[(5, 1), (4, 2), (2, 0), (2, 0), (1, 3), (3, 3), (4, 2), (3, 1)] 430925.57693333365
+Gantt chart saved to vh45_results/SA_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.08687149955932716
+[(2, 0), (4, 1), (1, 2), (1, 3), (3, 3), (7, 2), (4, 1), (2, 0)] 438454.1894333337
+Gantt chart saved to vh45_results/SA-wo-adaptive_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.10255065329579549
+Result bar chart saved to vh45_results/result_bar_chart_gpt3_1_3b.png
+Method: 1F1B(Even), Throughput: 22.60 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 16.80 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 22.84 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 24.65 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 17.91 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 24.43 K tokens/sec
+Method: ZB(Even), Throughput: 26.31 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 18.23 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 24.63 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 27.31 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 18.61 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 25.06 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 27.31 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 18.61 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 25.06 K tokens/sec
+Method: SA, Throughput: 38.02 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 37.37 K tokens/sec
+
+----
+
+Method: 1F1B(Even) failed with error: iteration: 6 - OOM.
+Method: 1F1B(DivByFlops) failed with error: iteration: 11 - OOM.
+Method: 1F1B(DivByMemory) failed with error: iteration: 15 - OOM.
+Method: Interleaved_1F1B(Even) failed with error: iteration: 6 - OOM.
+Method: Interleaved_1F1B(DivByFlops) failed with error: iteration: 14 - OOM.
+Method: Interleaved_1F1B(DivByMemory) failed with error: iteration: 27 - OOM.
+Method: ZB(Even) failed with error: iteration: 6 - OOM.
+Method: ZB(DivByFlops) failed with error: iteration: 14 - OOM.
+Method: ZB(DivByMemory) failed with error: iteration: 15 - OOM.
+Method: ZB-Vshape(Even) failed with error: iteration: 6 - OOM.
+Method: ZB-Vshape(DivByFlops) failed with error: iteration: 16 - OOM.
+Method: ZB-Vshape(DivByMemory) failed with error: iteration: 25 - OOM.
+Method: ZB-V-adaptive(Even) failed with error: iteration: 6 - OOM.
+Method: ZB-V-adaptive(DivByFlops) failed with error: iteration: 24 - OOM.
+Gantt chart saved to vh45_oom_results/ZB-V-adaptive(DivByMemory)_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.4886709365152623
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 5519024.2950419905 sec
+[(5, 0), (13, 1), (6, 2), (8, 3)] 4247905.388871473
+Gantt chart saved to vh45_oom_results/SA_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.3670102103040609
+[(5, 0), (13, 1), (6, 2), (8, 3)] 4247905.388871473
+Gantt chart saved to vh45_oom_results/SA-wo-adaptive_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.3670102103040609
+Result bar chart saved to vh45_oom_results/result_bar_chart_gpt3_6_7b.png
+Method: 1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB(Even), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: SA, Throughput: 0.00 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 0.00 K tokens/sec
+
+-----
+
+Gantt chart saved to hh55_760m_results/1F1B(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4284193463812387
+Method: 1F1B(Even), E2E Time: 704310.3742250004 sec
+Gantt chart saved to hh55_760m_results/1F1B(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4892790475443728
+Method: 1F1B(DivByFlops), E2E Time: 900704.7770833335 sec
+Gantt chart saved to hh55_760m_results/1F1B(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.2904446184274223
+Method: 1F1B(DivByMemory), E2E Time: 445930.3190312502 sec
+Gantt chart saved to hh55_760m_results/Interleaved_1F1B(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.3705889407125107
+Method: Interleaved_1F1B(Even), E2E Time: 639598.2055125003 sec
+Gantt chart saved to hh55_760m_results/Interleaved_1F1B(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4481724768510519
+Method: Interleaved_1F1B(DivByFlops), E2E Time: 833609.7464083331 sec
+Gantt chart saved to hh55_760m_results/Interleaved_1F1B(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.2094630554396566
+Method: Interleaved_1F1B(DivByMemory), E2E Time: 400249.80470833334 sec
+Gantt chart saved to hh55_760m_results/ZB(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.36045586470018975
+Method: ZB(Even), E2E Time: 629464.2728000003 sec
+Gantt chart saved to hh55_760m_results/ZB(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.44130010471750436
+Method: ZB(DivByFlops), E2E Time: 823355.8042833338 sec
+Gantt chart saved to hh55_760m_results/ZB(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.12906696857593492
+Method: ZB(DivByMemory), E2E Time: 363302.62633125007 sec
+Gantt chart saved to hh55_760m_results/ZB-Vshape(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.33590435547922814
+Method: ZB-Vshape(Even), E2E Time: 606193.079824375 sec
+Gantt chart saved to hh55_760m_results/ZB-Vshape(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4251991547567071
+Method: ZB-Vshape(DivByFlops), E2E Time: 800292.4933741672 sec
+Gantt chart saved to hh55_760m_results/ZB-Vshape(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.12525099228410042
+Method: ZB-Vshape(DivByMemory), E2E Time: 361717.7669068753 sec
+Gantt chart saved to hh55_760m_results/ZB-V-adaptive(Even)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.3314732751076298
+Method: ZB-V-adaptive(Even), E2E Time: 602175.1548 sec
+Gantt chart saved to hh55_760m_results/ZB-V-adaptive(DivByFlops)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.4213254528066712
+Method: ZB-V-adaptive(DivByFlops), E2E Time: 794935.2600083338 sec
+Gantt chart saved to hh55_760m_results/ZB-V-adaptive(DivByMemory)_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.10452683580842848
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 353346.44334166683 sec
+[(3, 0), (4, 1), (2, 3), (1, 2), (2, 2), (6, 0), (5, 1), (1, 3)] 351355.2067437502
+Gantt chart saved to hh55_760m_results/SA_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.09945191759812066
+[(4, 0), (6, 1), (1, 2), (1, 3), (2, 3), (2, 2), (3, 1), (5, 0)] 353346.44334166666
+Gantt chart saved to hh55_760m_results/SA-wo-adaptive_test_gpt3_760m_gantt_chart.png
+avg bubble rate:  0.10452683580842825
+Result bar chart saved to hh55_760m_results/result_bar_chart_gpt3_760m.png
+Method: 1F1B(Even), Throughput: 11.63 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 9.10 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 18.37 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 12.81 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 9.83 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 20.47 K tokens/sec
+Method: ZB(Even), Throughput: 13.01 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 9.95 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 22.55 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 13.51 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 10.24 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 22.65 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 13.60 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 10.31 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 23.18 K tokens/sec
+Method: SA, Throughput: 23.32 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 23.18 K tokens/sec
+
+
+----
+
+
+Gantt chart saved to hh55_results/1F1B(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.38341251067783844
+Method: 1F1B(Even), E2E Time: 730128.9848500004 sec
+Gantt chart saved to hh55_results/1F1B(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.46444259897519746
+Method: 1F1B(DivByFlops), E2E Time: 919639.6160166669 sec
+Gantt chart saved to hh55_results/1F1B(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3291370688839568
+Method: 1F1B(DivByMemory), E2E Time: 576408.7896937502 sec
+Gantt chart saved to hh55_results/Interleaved_1F1B(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3112760591612237
+Method: Interleaved_1F1B(Even), E2E Time: 653655.7987250005 sec
+Gantt chart saved to hh55_results/Interleaved_1F1B(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.4168659586005963
+Method: Interleaved_1F1B(DivByFlops), E2E Time: 844608.2164083328 sec
+Gantt chart saved to hh55_results/Interleaved_1F1B(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2608287896534779
+Method: Interleaved_1F1B(DivByMemory), E2E Time: 523141.7089333335 sec
+Gantt chart saved to hh55_results/ZB(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2895766047821261
+Method: ZB(Even), E2E Time: 633690.2763624999 sec
+Gantt chart saved to hh55_results/ZB(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.4041912119056308
+Method: ZB(DivByFlops), E2E Time: 826640.7150666672 sec
+Gantt chart saved to hh55_results/ZB(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2348139156820338
+Method: ZB(DivByMemory), E2E Time: 505355.8841437503 sec
+Gantt chart saved to hh55_results/ZB-Vshape(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2591659402462929
+Method: ZB-Vshape(Even), E2E Time: 607677.7811750004 sec
+Gantt chart saved to hh55_results/ZB-Vshape(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3851934652894393
+Method: ZB-Vshape(DivByFlops), E2E Time: 801097.2148583338 sec
+Gantt chart saved to hh55_results/ZB-Vshape(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.22530053434090147
+Method: ZB-Vshape(DivByMemory), E2E Time: 499150.0669824408 sec
+Gantt chart saved to hh55_results/ZB-V-adaptive(Even)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.2564233591261088
+Method: ZB-V-adaptive(Even), E2E Time: 605436.4444812504 sec
+Gantt chart saved to hh55_results/ZB-V-adaptive(DivByFlops)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.3828913756418083
+Method: ZB-V-adaptive(DivByFlops), E2E Time: 798108.7659333339 sec
+Gantt chart saved to hh55_results/ZB-V-adaptive(DivByMemory)_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.21711491829262808
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 493931.1007583337 sec
+[(3, 0), (6, 1), (2, 1), (5, 0), (3, 2), (1, 3), (3, 3), (1, 2)] 439607.2308500004
+Gantt chart saved to hh55_results/SA_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.0722241035979847
+[(4, 0), (4, 1), (2, 2), (2, 3), (2, 3), (2, 2), (4, 1), (4, 0)] 440065.40364166704
+Gantt chart saved to hh55_results/SA-wo-adaptive_test_gpt3_1_3b_gantt_chart.png
+avg bubble rate:  0.07319005472474371
+Result bar chart saved to hh55_results/result_bar_chart_gpt3_1_3b.png
+Method: 1F1B(Even), Throughput: 22.44 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 17.82 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 28.42 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 25.07 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 19.40 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 31.32 K tokens/sec
+Method: ZB(Even), Throughput: 25.85 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 19.82 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 32.42 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 26.96 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 20.45 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 32.82 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 27.06 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 20.53 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 33.17 K tokens/sec
+Method: SA, Throughput: 37.27 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 37.23 K tokens/sec
+
+
+-----
+
+Method: 1F1B(Even) failed with error: iteration: 14 - OOM.
+Method: 1F1B(DivByFlops) failed with error: iteration: 11 - OOM.
+Method: 1F1B(DivByMemory) failed with error: iteration: 70 - OOM.
+Method: Interleaved_1F1B(Even) failed with error: iteration: 16 - OOM.
+Method: Interleaved_1F1B(DivByFlops) failed with error: iteration: 12 - OOM.
+Method: Interleaved_1F1B(DivByMemory) failed with error: iteration: 53 - OOM.
+Method: ZB(Even) failed with error: iteration: 19 - OOM.
+Method: ZB(DivByFlops) failed with error: iteration: 16 - OOM.
+Method: ZB(DivByMemory) failed with error: iteration: 33 - OOM.
+Method: ZB-Vshape(Even) failed with error: iteration: 19 - OOM.
+Method: ZB-Vshape(DivByFlops) failed with error: iteration: 16 - OOM.
+Gantt chart saved to hh55_6_7b_results/ZB-Vshape(DivByMemory)_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.37833347604061374
+Method: ZB-Vshape(DivByMemory), E2E Time: 3907081.0285827015 sec
+Gantt chart saved to hh55_6_7b_results/ZB-V-adaptive(Even)_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.5307495948635498
+Method: ZB-V-adaptive(Even), E2E Time: 4869823.160910247 sec
+Method: ZB-V-adaptive(DivByFlops) failed with error: iteration: 36 - OOM.
+Gantt chart saved to hh55_6_7b_results/ZB-V-adaptive(DivByMemory)_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.37563095280055103
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 3890169.5924250074 sec
+[(3, 1), (4, 0), (6, 1), (2, 3), (4, 0), (4, 2), (5, 3), (4, 2)] 2894216.0316000027
+Gantt chart saved to hh55_6_7b_results/SA_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.2042289380312432
+[(3, 0), (4, 1), (1, 2), (1, 3), (5, 3), (5, 2), (6, 1), (7, 0)] 3231403.0324791707
+Gantt chart saved to hh55_6_7b_results/SA-wo-adaptive_test_gpt3_6_7b_gantt_chart.png
+avg bubble rate:  0.27058495556186
+Result bar chart saved to hh55_6_7b_results/result_bar_chart_gpt3_6_7b.png
+Method: 1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB(Even), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 8.39 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 6.73 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 8.42 K tokens/sec
+Method: SA, Throughput: 11.32 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 10.14 K tokens/sec
+
+-----
+
+Method: 1F1B(Even) failed with error: iteration: 14 - OOM.
+Method: 1F1B(DivByFlops) failed with error: iteration: 22 - OOM.
+Gantt chart saved to hhvv_tp2_13B_results/1F1B(DivByMemory)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.38848289973691896
+Method: 1F1B(DivByMemory), E2E Time: 1.9061297020042376 sec
+Method: Interleaved_1F1B(Even) failed with error: iteration: 22 - OOM.
+Method: Interleaved_1F1B(DivByFlops) failed with error: iteration: 24 - OOM.
+Gantt chart saved to hhvv_tp2_13B_results/Interleaved_1F1B(DivByMemory)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.34625000000000006
+Method: Interleaved_1F1B(DivByMemory), E2E Time: 1.7829918288259465 sec
+Method: ZB(Even) failed with error: iteration: 19 - OOM.
+Method: ZB(DivByFlops) failed with error: iteration: 22 - OOM.
+Gantt chart saved to hhvv_tp2_13B_results/ZB(DivByMemory)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.33055999999999996
+Method: ZB(DivByMemory), E2E Time: 1.7412029578378372 sec
+Method: ZB-Vshape(Even) failed with error: iteration: 20 - OOM.
+Method: ZB-Vshape(DivByFlops) failed with error: iteration: 29 - OOM.
+Gantt chart saved to hhvv_tp2_13B_results/ZB-Vshape(DivByMemory)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.3207102993404364
+Method: ZB-Vshape(DivByMemory), E2E Time: 1.7159555149491899 sec
+Gantt chart saved to hhvv_tp2_13B_results/ZB-V-adaptive(Even)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.4725513577153555
+Method: ZB-V-adaptive(Even), E2E Time: 2.3071287431942924 sec
+Gantt chart saved to hhvv_tp2_13B_results/ZB-V-adaptive(DivByFlops)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.2924850770141776
+Method: ZB-V-adaptive(DivByFlops), E2E Time: 1.705461865123286 sec
+Gantt chart saved to hhvv_tp2_13B_results/ZB-V-adaptive(DivByMemory)_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.3159673024523162
+Method: ZB-V-adaptive(DivByMemory), E2E Time: 1.7040572947372985 sec
+[(4, 0), (3, 2), (4, 1), (8, 1), (4, 2), (5, 3), (8, 0), (4, 3)] 1.4269692208388152
+Gantt chart saved to hhvv_tp2_13B_results/SA_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.16158842134034423
+[(5, 0), (8, 1), (5, 2), (3, 3), (4, 3), (3, 2), (4, 1), (8, 0)] 1.4533240688086484
+Gantt chart saved to hhvv_tp2_13B_results/SA-wo-adaptive_test_gpt3_13b_gantt_chart.png
+avg bubble rate:  0.18031948881789117
+Result bar chart saved to hhvv_tp2_13B_results/result_bar_chart_gpt3_13b.png
+Method: 1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: 1F1B(DivByMemory), Throughput: 8595427.68 K tokens/sec
+Method: Interleaved_1F1B(Even), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: Interleaved_1F1B(DivByMemory), Throughput: 9189049.40 K tokens/sec
+Method: ZB(Even), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB(DivByMemory), Throughput: 9409586.59 K tokens/sec
+Method: ZB-Vshape(Even), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByFlops), Throughput: 0.00 K tokens/sec
+Method: ZB-Vshape(DivByMemory), Throughput: 9548033.07 K tokens/sec
+Method: ZB-V-adaptive(Even), Throughput: 7101467.59 K tokens/sec
+Method: ZB-V-adaptive(DivByFlops), Throughput: 9606781.80 K tokens/sec
+Method: ZB-V-adaptive(DivByMemory), Throughput: 9614700.19 K tokens/sec
+Method: SA, Throughput: 11481677.22 K tokens/sec
+Method: SA-wo-adaptive, Throughput: 11273466.36 K tokens/sec
