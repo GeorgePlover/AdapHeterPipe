@@ -20,7 +20,7 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
     base_color_map = {
         "F": "#5CA9C8",#"#AAAAAA",
         "B": "#5DB558",#"#555555", 
-        "W": "#3F3F3F"#"#555555"
+        "W": "#C77337"#"#555555"
     }
     
     # 找出最大的stage_id用于颜色渐变
@@ -60,7 +60,7 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
             color_intensity = 1.0
         
         if task.task_type == "W":
-            hatch = 'xx'
+            hatch = ''
         
         # 获取对应类型的颜色
         task_color = color_maps[task.task_type](color_intensity)
@@ -141,7 +141,7 @@ def generate_gantt_chart(tasklist: List['Task'], filename: str,
     b_patch = mpatches.Patch(facecolor=base_color_map["B"], label='Backward Pass', edgecolor='black') 
     handles = [f_patch, b_patch]
     if no_W is False:
-        w_patch = mpatches.Patch(facecolor=base_color_map["W"], label='Weight Pass', edgecolor='black', hatch='xx')
+        w_patch = mpatches.Patch(facecolor=base_color_map["W"], label='Weight Pass', edgecolor='black')
         ncol=3
         handles.append(w_patch)
     

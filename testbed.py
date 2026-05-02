@@ -439,7 +439,7 @@ def test_strategy(model_name:str,
     
     if VISUALIZE:
         from visual import generate_gantt_chart
-        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.pdf", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
+        generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
 
     return simulator.pipe_e2e_time()
         
