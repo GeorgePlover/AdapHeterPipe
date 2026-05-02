@@ -3,7 +3,10 @@ from my_common import DEBUG
 import json
 TFLOP = 1e12
 
-profiling_data = json.load(open("/home/nsh/nas/projects/Megatron-LM/device_profilings.json", "r"))
+try:
+    profiling_data = json.load(open("/home/nsh/nas/projects/Megatron-LM/device_profilings.json", "r"))
+except (FileNotFoundError, json.JSONDecodeError):
+    profiling_data = {}
 
 class Device:
     def __init__(self, name:str, tflops: float, memory_GB: float, tp:int = 1):

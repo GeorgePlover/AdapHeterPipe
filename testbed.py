@@ -6,6 +6,7 @@ from my_common import DEBUG, VISUALIZE
 import time
 import random
 import json
+import os
 
 class Strategy:
     def __init__(self, name: str):
@@ -440,6 +441,16 @@ def test_strategy(model_name:str,
     if VISUALIZE:
         from visual import generate_gantt_chart
         generate_gantt_chart(simulator.pipe_res(), f"{test_name}_gantt_chart.png", no_W=no_w, pipeline_schedule_type=pipe_schedule_type)
+        task_data = [{
+            "worker_id": t.worker_id,
+            "microbatch_id": t.microbatch_id,
+            "stage_id": t.stage_id,
+            "task_type": t.task_type,
+            "start_time": t.start_time,
+            "end_time": t.end_time,
+            "duration": t.duration,
+        } for t in simulator.pipe_res()]
+        json.dump(task_data, open(f"{test_name}_task_data.json", "w"), indent=2)
 
     return simulator.pipe_e2e_time()
         
@@ -670,6 +681,7 @@ def create_folder(folder_name: str):
         os.makedirs(folder_name)
 
 if __name__ == "__main__":
+    os.makedirs("draw", exist_ok=True)
     test_gpipe("draw/GPipe_draw")
     test_normal_1f1b("draw/1F1B_draw")
     test_normal_interleaved_1f1b("draw/Interleaved_1F1B_draw")
